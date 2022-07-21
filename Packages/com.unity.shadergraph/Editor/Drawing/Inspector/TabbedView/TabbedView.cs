@@ -1,4 +1,3 @@
-﻿
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -48,7 +47,7 @@ public class TabbedView : VisualElement
         tabButton.OnClose += RemoveTab;
         tabButton.OnSelect += Activate;
 
-        if(activate)
+        if (activate)
         {
             Activate(tabButton);
         }
@@ -59,7 +58,7 @@ public class TabbedView : VisualElement
         int index = m_Tabs.IndexOf(tabButton);
 
         // If this tab is the active one make sure we deselect it first...
-        if(m_ActiveTab == tabButton)
+        if (m_ActiveTab == tabButton)
         {
             DeselectTab(tabButton);
             m_ActiveTab = null;
@@ -72,7 +71,7 @@ public class TabbedView : VisualElement
         tabButton.OnSelect -= Activate;
 
         // If we closed the active tab AND we have any tabs left - active the next valid one...
-        if((m_ActiveTab == null) && m_Tabs.Any())
+        if ((m_ActiveTab == null) && m_Tabs.Any())
         {
             int clampedIndex = Mathf.Clamp(index, 0, m_Tabs.Count - 1);
             TabButton tabToActivate = m_Tabs[clampedIndex];
@@ -92,7 +91,7 @@ public class TabbedView : VisualElement
             {
                 m_Content.Remove(element);
 
-                if(button.Target == null)
+                if (button.Target == null)
                 {
                     string targetId = button.TargetId;
 
@@ -140,7 +139,7 @@ public class TabbedView : VisualElement
 
     public void Activate(TabButton button)
     {
-        if(m_ActiveTab != null)
+        if (m_ActiveTab != null)
         {
             DeselectTab(m_ActiveTab);
         }

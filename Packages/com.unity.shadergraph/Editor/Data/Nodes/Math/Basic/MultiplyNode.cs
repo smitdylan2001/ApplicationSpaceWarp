@@ -5,6 +5,7 @@ using UnityEditor.Graphing;
 using UnityEngine;
 using System.Linq;
 using UnityEditor.Graphing.Util;
+using UnityEngine.Pool;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -14,9 +15,9 @@ namespace UnityEditor.ShaderGraph
         public MultiplyNode()
         {
             name = "Multiply";
+            synonyms = new string[] { "multiplication", "times", "x" };
             UpdateNodeAfterDeserialization();
         }
-
 
         const int Input1SlotId = 0;
         const int Input2SlotId = 1;
@@ -36,11 +37,9 @@ namespace UnityEditor.ShaderGraph
 
         public override bool hasPreview => true;
 
-        string GetFunctionHeader()
+        string GetFunctionName()
         {
-            return "Unity_Multiply" + "_" + concretePrecision.ToShaderString()
-                + (this.GetSlots<DynamicVectorMaterialSlot>().Select(s => NodeUtils.GetSlotDimension(s.concreteValueType)).FirstOrDefault() ?? "")
-                + (this.GetSlots<DynamicMatrixMaterialSlot>().Select(s => NodeUtils.GetSlotDimension(s.concreteValueType)).FirstOrDefault() ?? "");
+            return $"Unity_Multiply_{FindSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString()}_{FindSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString()}";
         }
 
         public sealed override void UpdateNodeAfterDeserialization()
@@ -58,36 +57,34 @@ namespace UnityEditor.ShaderGraph
             var outputValue = GetSlotValue(OutputSlotId, generationMode);
 
             sb.AppendLine("{0} {1};", FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString(), GetVariableNameForSlot(OutputSlotId));
-            sb.AppendLine("{0}({1}, {2}, {3});", GetFunctionHeader(), input1Value, input2Value, outputValue);
-        }
-
-        string GetFunctionName()
-        {
-            return $"Unity_Multiply_{FindSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(concretePrecision)}_{FindSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString(concretePrecision)}";
+            sb.AppendLine("{0}({1}, {2}, {3});", GetFunctionName(), input1Value, input2Value, outputValue);
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GenerationMode generationMode)
         {
-            registry.ProvideFunction(GetFunctionName(), s =>
+            var functionName = GetFunctionName();
+
+            registry.ProvideFunction(functionName, s =>
+            {
+                s.AppendLine("void {0}({1} A, {2} B, out {3} Out)",
+                    functionName,
+                    FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(),
+                    FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString(),
+                    FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString());     // TODO: should this type be part of the function name?
+                                                                                                        // is output concrete value type related to node's concrete precision??
+                using (s.BlockScope())
                 {
-                    s.AppendLine("void {0}({1} A, {2} B, out {3} Out)",
-                        GetFunctionHeader(),
-                        FindInputSlot<MaterialSlot>(Input1SlotId).concreteValueType.ToShaderString(),
-                        FindInputSlot<MaterialSlot>(Input2SlotId).concreteValueType.ToShaderString(),
-                        FindOutputSlot<MaterialSlot>(OutputSlotId).concreteValueType.ToShaderString());
-                    using (s.BlockScope())
+                    switch (m_MultiplyType)
                     {
-                        switch (m_MultiplyType)
-                        {
-                            case MultiplyType.Vector:
-                                s.AppendLine("Out = A * B;");
-                                break;
-                            default:
-                                s.AppendLine("Out = mul(A, B);");
-                                break;
-                        }
+                        case MultiplyType.Vector:
+                            s.AppendLine("Out = A * B;");
+                            break;
+                        default:
+                            s.AppendLine("Out = mul(A, B);");
+                            break;
                     }
-                });
+                }
+            });
         }
 
         // Internal validation
@@ -95,7 +92,6 @@ namespace UnityEditor.ShaderGraph
 
         public override void EvaluateDynamicMaterialSlots(List<MaterialSlot> inputSlots, List<MaterialSlot> outputSlots)
         {
-
             var dynamicInputSlotsToCompare = DictionaryPool<DynamicValueMaterialSlot, ConcreteSlotValueType>.Get();
             var skippedDynamicSlots = ListPool<DynamicValueMaterialSlot>.Get();
 
@@ -233,7 +229,7 @@ namespace UnityEditor.ShaderGraph
                     }
                 }
 
-                if(outputSlots.Any(x => x.hasError))
+                if (outputSlots.Any(x => x.hasError))
                 {
                     owner.AddConcretizationError(objectId, string.Format("Node {0} had output error", objectId));
                     hasError = true;

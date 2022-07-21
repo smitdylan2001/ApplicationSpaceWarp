@@ -36,17 +36,17 @@ namespace UnityEditor.ShaderGraph.Internal
             action(new HLSLProperty(HLSLType._SamplerState, "sampler" + referenceName, HLSLDeclaration.Global));
         }
 
-        internal override string GetPropertyAsArgumentString()
+        internal override string GetPropertyAsArgumentString(string precisionString)
         {
             return "UnityTextureCube " + referenceName;
         }
 
-        internal override string GetPropertyAsArgumentStringForVFX()
+        internal override string GetPropertyAsArgumentStringForVFX(string precisionString)
         {
             return "TEXTURECUBE(" + referenceName + ")";
         }
 
-        internal override string GetHLSLVariableName(bool isSubgraphProperty)
+        internal override string GetHLSLVariableName(bool isSubgraphProperty, GenerationMode mode)
         {
             if (isSubgraphProperty)
                 return referenceName;
@@ -82,9 +82,7 @@ namespace UnityEditor.ShaderGraph.Internal
             return new CubemapShaderProperty()
             {
                 displayName = displayName,
-                hidden = hidden,
                 value = value,
-                precision = precision,
             };
         }
     }

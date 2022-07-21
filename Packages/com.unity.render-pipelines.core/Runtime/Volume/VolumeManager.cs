@@ -33,16 +33,13 @@ namespace UnityEngine.Rendering
         [Obsolete("Please use baseComponentTypeArray instead.")]
         public IEnumerable<Type> baseComponentTypes
         {
-            get
-            {
-                return baseComponentTypeArray;
-            }
-            private set
-            {
-                baseComponentTypeArray = value.ToArray();
-            }
+            get => baseComponentTypeArray;
+            private set => baseComponentTypeArray = value.ToArray();
         }
 
+        /// <summary>
+        /// The current list of all available types that derive from <see cref="VolumeComponent"/>.
+        /// </summary>
         public Type[] baseComponentTypeArray { get; private set; }
 
         // Max amount of layers available in Unity
@@ -126,10 +123,12 @@ namespace UnityEngine.Rendering
             baseComponentTypeArray = CoreUtils.GetAllTypesDerivedFrom<VolumeComponent>()
                 .Where(t => !t.IsAbstract).ToArray();
 
+            var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
             // Keep an instance of each type to be used in a virtual lowest priority global volume
             // so that we have a default state to fallback to when exiting volumes
             foreach (var type in baseComponentTypeArray)
             {
+                type.GetMethod("Init", flags)?.Invoke(null, null);
                 var inst = (VolumeComponent)ScriptableObject.CreateInstance(type);
                 m_ComponentsDefaultState.Add(inst);
             }
@@ -253,7 +252,7 @@ namespace UnityEngine.Rendering
 
                 for (int i = 0; i < count; i++)
                 {
-                    if(target.parameters[i] != null)
+                    if (target.parameters[i] != null)
                     {
                         target.parameters[i].overrideState = false;
                         target.parameters[i].SetValue(component.parameters[i]);
@@ -500,11 +499,11 @@ namespace UnityEngine.Rendering
         /// Constructs a scope in which a Camera filters a Volume.
         /// </summary>
         /// <param name="unused">Unused parameter.</param>
-        public VolumeIsolationScope(bool unused) {}
+        public VolumeIsolationScope(bool unused) { }
 
         /// <summary>
         /// Stops the Camera from filtering a Volume.
         /// </summary>
-        void IDisposable.Dispose() {}
+        void IDisposable.Dispose() { }
     }
 }

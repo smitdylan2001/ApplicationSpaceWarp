@@ -63,7 +63,7 @@ float2 PackNormalOctQuadEncode(float3 n)
     //return (n.zz < float2(0.0, 0.0) ? (res0 >= 0.0 ? val : -val) : res0);
 
     // Optimized version of above code:
-    n *= rcp(dot(abs(n), 1.0));
+    n *= rcp(max(dot(abs(n), 1.0), 1e-6));
     float t = saturate(-n.z);
     return n.xy + (n.xy >= 0.0 ? t : -t);
 }
@@ -202,6 +202,7 @@ real3 UnpackNormalmapRGorAG(real4 packedNormal, real scale = 1.0)
     return UnpackNormalAG(packedNormal, scale);
 }
 
+#ifndef BUILTIN_TARGET_API
 real3 UnpackNormal(real4 packedNormal)
 {
 #if defined(UNITY_ASTC_NORMALMAP_ENCODING)
@@ -213,6 +214,7 @@ real3 UnpackNormal(real4 packedNormal)
     return UnpackNormalmapRGorAG(packedNormal, 1.0);
 #endif
 }
+#endif
 
 real3 UnpackNormalScale(real4 packedNormal, real bumpScale)
 {
@@ -552,7 +554,7 @@ float3 PackFloat2To888(float2 f)
 // Unpack 2 float of 12bit packed into a 888
 float2 Unpack888ToFloat2(float3 x)
 {
-    uint3 i = (uint3)(x * 255.5); // +0.5 to fix precision error on iOS 
+    uint3 i = (uint3)(x * 255.5); // +0.5 to fix precision error on iOS
     // 8 bit in lo, 4 bit in hi
     uint hi = i.z >> 4;
     uint lo = i.z & 15;
@@ -571,7 +573,7 @@ float PackFloat2To8(float2 f)
     return x_y_expanded / 255.0;
 
     // above 4 lines equivalent to:
-    //return (16.0 * f.x + f.y) / 17.0; 
+    //return (16.0 * f.x + f.y) / 17.0;
 }
 
 // Unpack 2 float values from the [0, 1] range, packed in an 8 bits float from the [0, 1] range

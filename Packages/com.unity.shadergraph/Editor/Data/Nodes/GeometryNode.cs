@@ -16,15 +16,15 @@ namespace UnityEditor.ShaderGraph
             m_PreviewMode = PreviewMode.Preview3D;
         }
 
-        public virtual List<CoordinateSpace> validSpaces => new List<CoordinateSpace> {CoordinateSpace.Object, CoordinateSpace.View, CoordinateSpace.World, CoordinateSpace.Tangent};
+        public virtual List<CoordinateSpace> validSpaces => new List<CoordinateSpace> { CoordinateSpace.Object, CoordinateSpace.View, CoordinateSpace.World, CoordinateSpace.Tangent };
 
         [SerializeField]
         private CoordinateSpace m_Space = CoordinateSpace.World;
 
         [PopupControl("Space")]
-        public PopupList spacePopup 
+        public PopupList spacePopup
         {
-            get 
+            get
             {
                 var names = validSpaces.Select(cs => cs.ToString().PascalToLabel()).ToArray();
                 return new PopupList(names, (int)m_Space);

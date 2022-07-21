@@ -17,6 +17,7 @@ namespace UnityEditor.ShaderGraph
         }
 
         public override bool IsActive() => false;
+        internal override bool ignoreCustomInterpolators => false;
 
         public override void Setup(ref TargetSetupContext context)
         {
@@ -48,7 +49,7 @@ namespace UnityEditor.ShaderGraph
                 passes = new PassCollection { Passes.Preview },
             };
         }
-        
+
         static class Passes
         {
             public static PassDescriptor Preview = new PassDescriptor()
@@ -111,6 +112,7 @@ namespace UnityEditor.ShaderGraph
                 {
                     StructFields.Varyings.positionCS,
                     StructFields.Varyings.positionWS,
+                    StructFields.Varyings.positionPredisplacementWS,
                     StructFields.Varyings.normalWS,
                     StructFields.Varyings.tangentWS,
                     StructFields.Varyings.texCoord0,
@@ -121,6 +123,7 @@ namespace UnityEditor.ShaderGraph
                     StructFields.Varyings.viewDirectionWS,
                     StructFields.Varyings.screenPosition,
                     StructFields.Varyings.instanceID,
+                    StructFields.Varyings.vertexID,
                     StructFields.Varyings.cullFace,
                 }
             };
@@ -135,6 +138,7 @@ namespace UnityEditor.ShaderGraph
                 type = KeywordType.Boolean,
                 definition = KeywordDefinition.MultiCompile,
                 scope = KeywordScope.Global,
+                stages = KeywordShaderStage.All,
             };
         }
     }

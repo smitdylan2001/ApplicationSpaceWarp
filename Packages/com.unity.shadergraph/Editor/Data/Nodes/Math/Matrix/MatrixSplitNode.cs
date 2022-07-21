@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEditor.Graphing;
 using UnityEditor.ShaderGraph.Drawing.Controls;
 using UnityEditor.Graphing.Util;
+using UnityEngine.Pool;
 
 namespace UnityEditor.ShaderGraph
 {
@@ -35,7 +36,6 @@ namespace UnityEditor.ShaderGraph
             UpdateNodeAfterDeserialization();
         }
 
-
         [SerializeField]
         MatrixAxis m_Axis;
 
@@ -64,7 +64,7 @@ namespace UnityEditor.ShaderGraph
             RemoveSlotsNameNotMatching(new int[] { InputSlotId, OutputSlotRId, OutputSlotGId, OutputSlotBId, OutputSlotAId });
         }
 
-        static int[] s_OutputSlots = {OutputSlotRId, OutputSlotGId, OutputSlotBId, OutputSlotAId};
+        static int[] s_OutputSlots = { OutputSlotRId, OutputSlotGId, OutputSlotBId, OutputSlotAId };
 
         public void GenerateNodeCode(ShaderStringBuilder sb, GenerationMode generationMode)
         {
@@ -230,7 +230,7 @@ namespace UnityEditor.ShaderGraph
                     }
                 }
 
-                if(outputSlots.Any(x => x.hasError))
+                if (outputSlots.Any(x => x.hasError))
                 {
                     owner.AddConcretizationError(objectId, string.Format("Node {0} had output error", objectId));
                     hasError = true;

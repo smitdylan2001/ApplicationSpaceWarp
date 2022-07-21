@@ -8,7 +8,7 @@ PropertyRow ColorField,
 PropertyRow DoubleField {
     margin-left: 0;
     margin-right: 0;
-	-unity-text-align : middle-left;
+    -unity-text-align : middle-left;
 }
 
 PropertyRow > #container{
@@ -36,6 +36,10 @@ PropertyRow > #container > #label > Label {
     /* Conditions */
     overflow: hidden;
     white-space: wrap;
+}
+
+PropertyRow > #container > #label > Label.modified {
+    -unity-font-style: bold;
 }
 
 PropertyRow > #container > #content{

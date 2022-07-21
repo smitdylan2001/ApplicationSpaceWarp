@@ -9,13 +9,17 @@ Unless you intend to modify Shader Graph or want to try out the latest and unsup
 1. Open a Unity project.
 2. Open the **Package Manager** window (**Window** &gt; **Package Manager**).
 3. In the **Package Manager** window, in the **Packages** menu, select **Unity Registry**.
-4. Select either **Universal RP** or **High Definition RP**, depending on your project needs.
-    Unity installs your chosen render pipeline and Shader Graph. Shader Graph isn't compatible with Unity's built-in render pipeline.
+4. Do one of the following, based on your project needs:
+    - To use Shader Graph and the [Universal Render Pipeline (URP)](https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@latest) in your project, select **Universal RP**.
+    - To use Shader Graph and the [High Definition Render Pipeline (HDRP)](https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@latest), select **High Definition RP**.
+    - To use Shader Graph with Unity's [Built-In Render Pipeline](https://docs.unity3d.com/2020.3/Documentation/Manual/built-in-render-pipeline.html), select **Shader Graph**.
+
+Unity recommends using Shader Graph with URP or HDRP.
 
 ## Instructions
 
 If you want to try out the latest features, we recommend obtaining the most recent version of Shader Graph through the [Unity Scriptable Render Pipeline (SRP) repository](https://github.com/Unity-Technologies/Graphics), which includes the Shader Graph project as a Git submodule. For more information on Git submodules, see [Git's documentation on Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
-If you don't install Shader Graph through the SRP repository, you don't have any Master Node backends available and your shaders are invalid. Invalid shaders appear pink in the Unity Editor. Installing through the repository also ensures you have a compatible set of render pipeline and Shader Graph versions, as Shader Graph isn't compatible with Unity's built-in render pipeline.
+If you don't install Shader Graph through the SRP repository, you don't have any Master Node backends available and your shaders are invalid. Invalid shaders appear pink in the Unity Editor. Installing through the repository also ensures you have a compatible set of render pipeline and Shader Graph versions.
 
 For more detailed instructions for installing from the repository, see the [SRP repository's README](https://github.com/Unity-Technologies/Graphics/blob/master/README.md).

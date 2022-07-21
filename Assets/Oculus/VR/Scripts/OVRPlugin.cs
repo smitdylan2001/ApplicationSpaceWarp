@@ -1,14 +1,22 @@
-/************************************************************************************
-Copyright : Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
-
-Your use of this SDK or tool is subject to the Oculus SDK License Agreement, available at
-https://developer.oculus.com/licenses/oculussdk/
-
-Unless required by applicable law or agreed to in writing, the Utilities SDK distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-ANY KIND, either express or implied. See the License for the specific language governing
-permissions and limitations under the License.
-************************************************************************************/
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ *
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #if USING_XR_MANAGEMENT && (USING_XR_SDK_OCULUS || USING_XR_SDK_OPENXR)
 #define USING_XR_SDK
@@ -30,6 +38,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 
 // Internal C# wrapper for OVRPlugin.
 
@@ -44,7 +54,7 @@ public static partial class OVRPlugin
 #if OVRPLUGIN_UNSUPPORTED_PLATFORM
 	public static readonly System.Version wrapperVersion = _versionZero;
 #else
-	public static readonly System.Version wrapperVersion = OVRP_1_73_0.version;
+	public static readonly System.Version wrapperVersion = OVRP_1_74_0.version;
 #endif
 
 #if !OVRPLUGIN_UNSUPPORTED_PLATFORM
@@ -379,6 +389,7 @@ public static partial class OVRPlugin
 		SurfaceProjectedPassthrough = 8,
 		Fisheye = 9,
 		KeyboardHandsPassthrough = 10,
+		KeyboardMaskedHandsPassthrough = 11,
 	}
 
 	public enum Step
@@ -1481,6 +1492,7 @@ public static partial class OVRPlugin
 
 
 		SceneCaptureComplete = 100,
+
 	}
 
 	private const int EventDataBufferSize = 4000;
@@ -1513,6 +1525,14 @@ public static partial class OVRPlugin
 		public uint VendorId;
 		public uint ModelVersion;
 	}
+
+	[Flags]
+	public enum RenderModelFlags
+	{
+		SupportsGltf20Subset1 = 1,
+		SupportsGltf20Subset2 = 2,
+	}
+
 
 
 	public enum InsightPassthroughColorMapType
@@ -1640,6 +1660,10 @@ public static partial class OVRPlugin
 		public Guid uuid;
 	}
 
+
+	//-----------------------------------------------------------------
+	// Methods
+	//-----------------------------------------------------------------
 	public static bool initialized
 	{
 		get {
@@ -5969,6 +5993,9 @@ public static partial class OVRPlugin
 	}
 
 
+// Virtual keyboard calls
+
+
 
     public static int GetLocalTrackingSpaceRecenterCount()
 	{
@@ -6251,6 +6278,16 @@ public static partial class OVRPlugin
 		{
 			return false;
 		}
+#endif
+	}
+
+	public static bool GetSpaceUuid(UInt64 space, out Guid uuid) {
+		uuid = default;
+#if OVRPLUGIN_UNSUPPORTED_PLATFORM
+		return false;
+#else
+		return version >= OVRP_1_74_0.version &&
+		       OVRP_1_74_0.ovrp_GetSpaceUuid(in space, out uuid) == Result.Success;
 #endif
 	}
 
@@ -6600,6 +6637,7 @@ public static partial class OVRPlugin
 #endif
 	}
 
+
 	public static string[] GetRenderModelPaths()
 	{
 #if OVRPLUGIN_UNSUPPORTED_PLATFORM
@@ -6630,23 +6668,32 @@ public static partial class OVRPlugin
 #if OVRPLUGIN_UNSUPPORTED_PLATFORM
 		return false;
 #else
-		if (version >= OVRP_1_68_0.version)
+		Result result;
+		RenderModelPropertiesInternal props;
+		if (version >= OVRP_1_74_0.version)
 		{
-			RenderModelPropertiesInternal props;
-			Result result = OVRP_1_68_0.ovrp_GetRenderModelProperties(modelPath, out props);
-			if (result != Result.Success)
-				return false;
-
-			modelProperties.ModelName = System.Text.Encoding.Default.GetString(props.ModelName);
-			modelProperties.ModelKey = props.ModelKey;
-			modelProperties.VendorId = props.VendorId;
-			modelProperties.ModelVersion = props.ModelVersion;
-			return true;
+			result = OVRP_1_74_0.ovrp_GetRenderModelProperties2(
+				modelPath,
+				RenderModelFlags.SupportsGltf20Subset2,
+				out props);
+		}
+		else if (version >= OVRP_1_68_0.version)
+		{
+			result = OVRP_1_68_0.ovrp_GetRenderModelProperties(modelPath, out props);
 		}
 		else
 		{
 			return false;
 		}
+
+		if (result != Result.Success)
+			return false;
+
+		modelProperties.ModelName = System.Text.Encoding.Default.GetString(props.ModelName);
+		modelProperties.ModelKey = props.ModelKey;
+		modelProperties.VendorId = props.VendorId;
+		modelProperties.ModelVersion = props.ModelVersion;
+		return true;
 #endif
 	}
 
@@ -6831,6 +6878,7 @@ public static partial class OVRPlugin
 #endif
 		}
 	}
+
 
 
 	public class UnityOpenXR
@@ -8233,6 +8281,20 @@ public static partial class OVRPlugin
 	{
 		public static readonly System.Version version = new System.Version(1, 73, 0);
 
+	}
+
+	private static class OVRP_1_74_0
+	{
+		public static readonly System.Version version = new System.Version(1, 74, 0);
+
+		public const int OVRP_MAX_VIRTUAL_KEYBOARD_KEY_LABEL_SIZE = 32;
+
+		[DllImport(pluginName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern Result ovrp_GetSpaceUuid(in UInt64 space, out Guid uuid);
+
+
+		[DllImport(pluginName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern Result ovrp_GetRenderModelProperties2(string path, RenderModelFlags flags, out RenderModelPropertiesInternal properties);
 	}
 	/* INSERT NEW OVRP CLASS ABOVE THIS LINE */
 }

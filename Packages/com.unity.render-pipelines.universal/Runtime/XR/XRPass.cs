@@ -6,10 +6,6 @@
 
 #if ENABLE_VR && ENABLE_XR_MODULE
 
-#if UNITY_2020_3_OR_NEWER && !UNITY_2021_1_OR_NEWER && !UNITY_2020_3_1 && !UNITY_2020_3_2 && !UNITY_2020_3_3 && !UNITY_2020_3_4 && !UNITY_2020_3_5 && !UNITY_2020_3_6 && !UNITY_2020_3_7 && !UNITY_2020_3_8 && !UNITY_2020_3_9 && !UNITY_2020_3_10 && !UNITY_2020_3_11 && !UNITY_2020_3_12 && !UNITY_2020_3_13 && !UNITY_2020_3_14 && !UNITY_2020_3_15 && !UNITY_2020_3_16 && !UNITY_2020_3_17 && !UNITY_2020_3_18 && !UNITY_2020_3_19 && !UNITY_2020_3_20 && !UNITY_2020_3_21
-#define UNITY_2020_3_22_OR_NEWER
-#endif
-
 using System;
 using System.Collections.Generic;
 using UnityEngine.XR;
@@ -60,13 +56,8 @@ namespace UnityEngine.Rendering.Universal
         {
             projMatrix = renderParameter.projection;
             viewMatrix = renderParameter.view;
-#if UNITY_2020_3_22_OR_NEWER
             prevViewValid = renderParameter.isPreviousViewValid;
             prevViewMatrix = (prevViewValid) ? renderParameter.previousView : Matrix4x4.identity;
-#else
-            prevViewValid = false;
-            prevViewMatrix = Matrix4x4.identity;
-#endif
             viewport = renderParameter.viewport;
             occlusionMesh = renderParameter.occlusionMesh;
             textureArraySlice = renderParameter.textureArraySlice;
@@ -112,7 +103,7 @@ namespace UnityEngine.Rendering.Universal
         internal Matrix4x4 GetProjMatrix(int viewIndex = 0)  { return views[viewIndex].projMatrix; }
         internal Matrix4x4 GetViewMatrix(int viewIndex = 0)  { return views[viewIndex].viewMatrix; }
         internal bool GetPrevViewValid(int viewIndex = 0) { return views[viewIndex].prevViewValid; }
-        internal Matrix4x4 GetPrevViewMatrix(int viewIndex = 0)  { return views[viewIndex].prevViewMatrix; }
+        internal Matrix4x4 GetPrevViewMatrix(int viewIndex = 0) { return views[viewIndex].prevViewMatrix; }
         internal int GetTextureArraySlice(int viewIndex = 0) { return views[viewIndex].textureArraySlice; }
         internal Rect GetViewport(int viewIndex = 0)         { return views[viewIndex].viewport; }
 
@@ -261,6 +252,7 @@ namespace UnityEngine.Rendering.Universal
                 Debug.Assert(passInfo.motionVectorRenderTargetValid, "Invalid motion vector render target from XRDisplaySubsystem!");
             }
 
+
             return passInfo;
         }
 
@@ -277,7 +269,7 @@ namespace UnityEngine.Rendering.Universal
         internal void AddViewInternal(XRView xrView)
         {
             // XRTODO: Fix hard coded max views
-            int maxSupportedViews = Math.Min(TextureXR.slices, 2/*ShaderConfig.s_XrMaxViews*/);
+            int maxSupportedViews = Math.Min(TextureXR.slices, 2 /*ShaderConfig.s_XrMaxViews*/);
 
             if (views.Count < maxSupportedViews)
             {
@@ -374,7 +366,7 @@ namespace UnityEngine.Rendering.Universal
 
                     indices[indexStart + i] = (ushort)newIndex;
                 }
-                
+
                 vertexStart += mesh.vertexCount;
                 indexStart += meshIndices.Length;
             }
@@ -382,8 +374,6 @@ namespace UnityEngine.Rendering.Universal
             occlusionMeshCombined.vertices = vertices;
             occlusionMeshCombined.SetIndices(indices, MeshTopology.Triangles, 0);
         }
-
-        Vector4[] stereoEyeIndices = new Vector4[2] { Vector4.zero , Vector4.one };
 
         internal void StartSinglePass(CommandBuffer cmd)
         {
@@ -396,7 +386,6 @@ namespace UnityEngine.Rendering.Universal
                         if (SystemInfo.supportsMultiview)
                         {
                             cmd.EnableShaderKeyword("STEREO_MULTIVIEW_ON");
-                            cmd.SetGlobalVectorArray("unity_StereoEyeIndices", stereoEyeIndices);
                         }
                         else
                         {
@@ -450,6 +439,11 @@ namespace UnityEngine.Rendering.Universal
 
         internal void RenderOcclusionMesh(CommandBuffer cmd)
         {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            if (XRGraphicsAutomatedTests.enabled && XRGraphicsAutomatedTests.running)
+                return;
+#endif
+
             if (isOcclusionMeshSupported)
             {
                 using (new ProfilingScope(cmd, _XROcclusionProfilingSampler))

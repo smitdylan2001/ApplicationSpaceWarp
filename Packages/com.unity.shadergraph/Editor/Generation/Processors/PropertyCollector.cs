@@ -124,7 +124,7 @@ namespace UnityEditor.ShaderGraph
                             {
                                 // check if same property
                                 if (!h.ValueEquals(m_HLSLProperties[index]))
-                                    Debug.LogError("Two different HLSL Properties declared with the same name: " + h.name + " and " +  m_HLSLProperties[index].name);
+                                    Debug.LogError("Two different HLSL Properties declared with the same name: " + h.name + " and " + m_HLSLProperties[index].name);
                                 return;
                             }
                             dict.Add(h.name, m_HLSLProperties.Count);
@@ -136,11 +136,12 @@ namespace UnityEditor.ShaderGraph
             return m_HLSLProperties;
         }
 
-        public void GetPropertiesDeclaration(ShaderStringBuilder builder, GenerationMode mode, ConcretePrecision inheritedPrecision)
+        public void GetPropertiesDeclaration(ShaderStringBuilder builder, GenerationMode mode, ConcretePrecision defaultPrecision)
         {
             foreach (var prop in properties)
             {
-                prop.ValidateConcretePrecision(inheritedPrecision);
+                // set up switched properties to use the inherited precision
+                prop.SetupConcretePrecision(defaultPrecision);
             }
 
             // build a list of all HLSL properties
@@ -246,7 +247,7 @@ namespace UnityEditor.ShaderGraph
                 builder.AppendLine("UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)");
 
                 builder.AppendLine("// DOTS instancing usage macros");
-                builder.AppendLine("#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) UNITY_ACCESS_DOTS_INSTANCED_PROP_FROM_MACRO(type, Metadata_##var)");
+                builder.AppendLine("#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) UNITY_ACCESS_DOTS_INSTANCED_PROP_FROM_MACRO(type, Metadata##var)");
                 builder.AppendLine("#else");
                 builder.AppendLine("#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) var");
                 builder.AppendLine("#endif");

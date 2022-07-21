@@ -5,7 +5,7 @@ using UnityEditor.ShaderGraph.Drawing.Controls;
 using UnityEditor.ShaderGraph.Internal;
 
 namespace UnityEditor.ShaderGraph
-{    
+{
     [Title("UV", "Triplanar")]
     class TriplanarNode : AbstractMaterialNode, IGeneratesBodyCode, IMayRequirePosition, IMayRequireNormal, IMayRequireTangent, IMayRequireBitangent
     {
@@ -29,10 +29,10 @@ namespace UnityEditor.ShaderGraph
         public TriplanarNode()
         {
             name = "Triplanar";
+            synonyms = new string[] { "project" };
             m_PreviewMode = PreviewMode.Preview3D;
             UpdateNodeAfterDeserialization();
         }
-
 
         [SerializeField]
         private TextureType m_TextureType = TextureType.Default;
@@ -69,7 +69,7 @@ namespace UnityEditor.ShaderGraph
         {
             base.Setup();
             var textureSlot = FindInputSlot<Texture2DInputMaterialSlot>(TextureInputId);
-            textureSlot.defaultType = (textureType == TextureType.Normal ? Texture2DShaderProperty.DefaultType.Bump : Texture2DShaderProperty.DefaultType.White);
+            textureSlot.defaultType = (textureType == TextureType.Normal ? Texture2DShaderProperty.DefaultType.NormalMap : Texture2DShaderProperty.DefaultType.White);
         }
 
         // Node generations

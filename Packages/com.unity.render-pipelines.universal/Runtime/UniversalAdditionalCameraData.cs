@@ -2,19 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.Serialization;
-using UnityEngine.Rendering;
-using System.ComponentModel;
 using UnityEngine.Assertions;
-
-namespace UnityEngine.Rendering.LWRP
-{
-    [Obsolete("LWRP -> Universal (UnityUpgradable) -> UnityEngine.Rendering.Universal.UniversalAdditionalCameraData", true)]
-    public class LWRPAdditionalCameraData
-    {
-    }
-}
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -24,7 +13,7 @@ namespace UnityEngine.Rendering.Universal
     /// When set to <c>On</c> option will be enabled regardless of what is set on the pipeline asset.
     /// When set to <c>UsePipelineSetting</c> value set in the <see cref="UniversalRenderPipelineAsset"/>.
     /// </summary>
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public enum CameraOverrideOption
+    public enum CameraOverrideOption
     {
         Off,
         On,
@@ -32,7 +21,7 @@ namespace UnityEngine.Rendering.Universal
     }
 
     //[Obsolete("Renderer override is no longer used, renderers are referenced by index on the pipeline asset.")]
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public enum RendererOverrideOption
+    public enum RendererOverrideOption
     {
         Custom,
         UsePipelineSettings,
@@ -46,8 +35,11 @@ namespace UnityEngine.Rendering.Universal
     /// </summary>
     public enum AntialiasingMode
     {
+        [InspectorName("No Anti-aliasing")]
         None,
+        [InspectorName("Fast Approximate Anti-aliasing (FXAA)")]
         FastApproximateAntialiasing,
+        [InspectorName("Subpixel Morphological Anti-aliasing (SMAA)")]
         SubpixelMorphologicalAntiAliasing,
         //TemporalAntialiasing
     }
@@ -80,7 +72,7 @@ namespace UnityEngine.Rendering.Universal
     {
         /// <summary>
         /// Universal Render Pipeline exposes additional rendering data in a separate component.
-        /// This method returns the additional data component for the given camera or create one if it doesn't exists yet.
+        /// This method returns the additional data component for the given camera or create one if it doesn't exist yet.
         /// </summary>
         /// <param name="camera"></param>
         /// <returns>The <c>UniversalAdditionalCameraData</c> for this camera.</returns>
@@ -243,8 +235,14 @@ namespace UnityEngine.Rendering.Universal
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Camera))]
     [ImageEffectAllowedInSceneView]
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public class UniversalAdditionalCameraData : MonoBehaviour, ISerializationCallbackReceiver
+    [URPHelpURL("universal-additional-camera-data")]
+    public class UniversalAdditionalCameraData : MonoBehaviour, ISerializationCallbackReceiver, IAdditionalData
     {
+        const string k_GizmoPath = "Packages/com.unity.render-pipelines.universal/Editor/Gizmos/";
+        const string k_BaseCameraGizmoPath = k_GizmoPath + "Camera_Base.png";
+        const string k_OverlayCameraGizmoPath = k_GizmoPath + "Camera_Base.png";
+        const string k_PostProcessingGizmoPath = k_GizmoPath + "Camera_PostProcessing.png";
+
         [FormerlySerializedAs("renderShadows"), SerializeField]
         bool m_RenderShadows = true;
 
@@ -255,8 +253,8 @@ namespace UnityEngine.Rendering.Universal
         CameraOverrideOption m_RequiresOpaqueTextureOption = CameraOverrideOption.UsePipelineSettings;
 
         [SerializeField] CameraRenderType m_CameraType = CameraRenderType.Base;
-		[SerializeField] List<Camera> m_Cameras = new List<Camera>();
-		[SerializeField] int m_RendererIndex = -1;
+        [SerializeField] List<Camera> m_Cameras = new List<Camera>();
+        [SerializeField] int m_RendererIndex = -1;
 
         [SerializeField] LayerMask m_VolumeLayerMask = 1; // "Default"
         [SerializeField] Transform m_VolumeTrigger = null;
@@ -271,7 +269,6 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] bool m_AllowXRRendering = true;
 
         [NonSerialized] Camera m_Camera;
-
         // Deprecated:
         [FormerlySerializedAs("requiresDepthTexture"), SerializeField]
         bool m_RequiresDepthTexture = false;
@@ -310,6 +307,8 @@ namespace UnityEngine.Rendering.Universal
                 return m_Camera;
             }
         }
+
+
         /// <summary>
         /// Controls if this camera should render shadows.
         /// </summary>
@@ -593,17 +592,16 @@ namespace UnityEngine.Rendering.Universal
 
         public void OnDrawGizmos()
         {
-            string path = "Packages/com.unity.render-pipelines.universal/Editor/Gizmos/";
             string gizmoName = "";
             Color tint = Color.white;
 
             if (m_CameraType == CameraRenderType.Base)
             {
-                gizmoName = $"{path}Camera_Base.png";
+                gizmoName = k_BaseCameraGizmoPath;
             }
             else if (m_CameraType == CameraRenderType.Overlay)
             {
-                gizmoName = $"{path}Camera_Overlay.png";
+                gizmoName = k_OverlayCameraGizmoPath;
             }
 
 #if UNITY_2019_2_OR_NEWER
@@ -621,12 +619,12 @@ namespace UnityEngine.Rendering.Universal
 
             if (renderPostProcessing)
             {
-                Gizmos.DrawIcon(transform.position, $"{path}Camera_PostProcessing.png", true, tint);
+                Gizmos.DrawIcon(transform.position, k_PostProcessingGizmoPath, true, tint);
             }
 #else
             if (renderPostProcessing)
             {
-                Gizmos.DrawIcon(transform.position, $"{path}Camera_PostProcessing.png");
+                Gizmos.DrawIcon(transform.position, k_PostProcessingGizmoPath);
             }
             Gizmos.DrawIcon(transform.position, gizmoName);
 #endif

@@ -1,146 +1,184 @@
-# What's new in URP 10
+# What's new in URP 12 (Unity 2021.2)
 
-This section contains information about new features, improvements, and issues fixed in URP 10.
+This section contains information about new features, improvements, and issues fixed in URP 12.
 
-* [URP 10.5](#urp-10-5)
-* [URP 10.4](#urp-10-4)
-* [URP 10.3](#urp-10-3)
-* [URP 10.2](#urp-10-2)
-* [URP 10.0–10.1](#urp-10-1)
-
-For a complete list of changes made in URP 10, refer to the [Changelog](../../changelog/CHANGELOG.html).
-
-For information on the known issues in URP 10, see the section [Known issues](../known-issues.md).
-
-# What's new in URP 10.5<a name="urp-10-5"></a>
-
-URP 10.5 is a maintenance update, it contains fixes to issues found in previous releases of URP 10.
-
-For a complete list of changes, refer to the [Changelog](../../changelog/CHANGELOG.html).
-
-# What's new in URP 10.4<a name="urp-10-4"></a>
-
-URP 10.4 is a maintenance update, it contains fixes to issues found in previous releases of URP 10.
-
-For a complete list of changes, refer to the [Changelog](../../changelog/CHANGELOG.html).
-
-# What's new in URP 10.3<a name="urp-10-3"></a>
-
-URP 10.3 is a maintenance update, it contains fixes to issues found in previous releases of URP 10.
-
-For a complete list of changes made in URP 10.3, refer to the [Changelog](../../changelog/CHANGELOG.html).
-
-# What's new in URP 10.2<a name="urp-10-2"></a>
-
-URP 10.2 is a maintenance update, it contains fixes to issues found in previous releases of URP 10.
-
-For a complete list of changes made in URP 10.2, refer to the [Changelog](../../changelog/CHANGELOG.html).
-
-# What's new in URP 10.0–10.1<a name="urp-10-1"></a>
-
-This page contains an overview of new features, major improvements, and issues resolved in URP versions 10.0 and 10.1.
-
-For a complete list of changes made in URP 10.1, refer to the [Changelog](../../changelog/CHANGELOG.html).
+For a complete list of changes made in URP 12, refer to the [Changelog](../../changelog/CHANGELOG.html).
 
 ## Features
 
 This section contains the overview of the new features in this release.
 
-### Screen Space Ambient Occlusion (SSAO)
+### Scene Debug View Modes
 
-The Ambient Occlusion effect darkens creases, holes, intersections and surfaces that are close to each other. In the real world, such areas tend to block out or occlude ambient light, so they appear darker.
+![Rendering Debugger](../Images/whats-new/urp-12/rendering-debugger.png)
 
-URP implements the real-time Screen Space Ambient Occlusion (SSAO) effect as a Renderer Feature.
+Improvements in this release bring URP's **Scene Debug View Modes** closer to parity with the options available in Built-in Render Pipeline. The Render Pipeline Debug Window is also included as a new debugging workflow for URP in this release. Users can use Debug Window to inspect the properties of materials being rendered, how the light interacts with these materials, and how shadows and LOD operations are performed to produce the final frame.
 
-![Scene showing the Ambient Occlusion effect turned On and Off.](../Images/whats-new/urp-10/ssao.png)<br/>*Scene showing the Ambient Occlusion effect turned On and Off.*
+### Reflection probe blending and box projection support
 
-For more information on the Ambient Occlusion effect, see the page [Ambient Occlusion](../post-processing-ssao.md).
+![Reflection probe blending and box projection support](../Images/whats-new/urp-12/reflection-probe-blending-artistic-demo.gif)<br/>*This illustration shows the reflections implemented using reflection probes.*
 
-### Clear Coat
+Reflection probe blending and box projection support have been added to allow for better reflection quality using probes and bringing URP closer to feature parity with the Built-In Render Pipeline.
 
-The Clear Coat feature adds an extra Material layer which simulates a transparent and thin coating on top of the base Material. The feature is available in the Complex Lit shader.
+For more information on reflection probes in URP, see the page [Reflection probes](../lighting/reflection-probes.md).
 
-For more information on the feature, see section [Surface Inputs](../shader-complex-lit.md#surface-inputs) on the [Complex Lit](../shader-complex-lit.md) page.
+### URP Deferred Rendering Path
 
-![Clear Coat effect (Left: Off, Right: On)](../Images/whats-new/urp-10/clear-coat.png)<br/>*Clear Coat effect (Left: Off, Right: On)*
+![URP Deferred Rendering Path](../Images/whats-new/urp-12/urp-deferred-rendering-path.png)<br/>*A sample scene that uses the Deferred Rendering Path.*
 
-### Camera Normals Texture
+The URP Deferred Rendering Path uses a rendering technique where light shading is performed in screen space on a separate rendering pass after all the vertex and pixel shaders have been rendered. Deferred shading decouples scene geometry from lighting calculations, so the shading of each light is only computed for the visible pixels that it actually affects. With this approach, Unity can efficiently render a far greater amount of lights in a scene compared to per-object forward rendering.
 
-URP 10.0 implements the `DepthNormals` Pass block that generates the normal texture `_CameraNormalsTexture` for the current frame.
+For more information about this feature, see the page [Deferred Rendering Path](../rendering/deferred-rendering-path.md).
 
-URP creates a `_CameraNormalsTexture` if at least one render Pass requires it. To ensure that the URP Renderer creates the `_CameraNormalsTexture` texture, add a call to the <xref:UnityEngine.Rendering.Universal.ScriptableRenderPass.ConfigureInput*> method in `ScriptableRendererFeature.AddRenderPasses`.
+### URP decal system
 
-### Detail Map, Detail Normal Map
+![Decal Projector in the Scene.](../Images/whats-new/urp-12/urp-decal.png)<br/>*Decal Projector in the Scene.*
 
-A Detail map lets you overlay another texture on top of the Base Map. A Detail Normal Map is a special texture that lets you add surface detail such as bumps, grooves, and scratches which catch the light as if they exist in the mesh geometry.
+The new decal system enables you to project decal materials into the surfaces of a Scene. Decals projected into a scene will wrap around meshes and interact with the Scene’s lighting. Decals are useful for adding extra textural detail to a Scene, especially in order to break up materials’ repetitiveness and detail patterns.
 
-![Detail Map](../Images/whats-new/urp-10/detail-map.png)<br/>*Left: rendered object only with the Base Map. Right: rendered object with the Detail Map.*
+For more information about this feature, see the page [Decal Renderer Feature](../renderer-feature-decal.md).
 
-For more information, see section [Detail Inputs](../lit-shader.md#detail-inputs) on the [Lit shader](../lit-shader.md) page.
+### Depth prepass (Depth Priming Mode)
 
-### Shadow Distance Fade
+This release adds support for depth prepass, a rendering pass in which all visible opaque meshes are rendered to populate the depth buffer (without incurring fragment shading cost). Any subsequent color pass can reuse this depth buffer. A depth prepass eliminates or significantly reduces geometry rendering overdraw.
 
-With Shadow Distance Fade, shadows fade smoothly when they reach the maximum shadow rendering distance (__Shadows > Max Distance__ in the render pipeline asset).
+To enable the depth prepass, set the **Depth Priming Mode** to Auto or Forced (URP Asset > Rendering > Rendering Path, Forward > Depth Priming Mode).
 
-![Shadow Distance Fade](../Images/whats-new/urp-10/shadow-distance-fade.png)<br/>*Illustration showing the Shadow Distance Fade effect (right).*
+![Depth Priming Mode property.](../Images/whats-new/urp-12/urp-asset-depth-priming-mode.png)<br/>*The Depth Priming Mode property*.
 
-### Shadow Cascade
+### URP Light Cookies
 
-With shadow cascades, you can avoid crude shadows close to the Camera and keep the Shadow Resolution reasonably low. For more information, see the page [Shadow Cascades](https://docs.unity3d.com/Manual/shadow-cascades.html).
+![Light Cookie sample](../Images/whats-new/urp-12/light-cookie-sample-1.png)
 
-URP supports 1–4 shadow cascades now, and also supports two working units, percent and meters.
+The **URP Light Cookies** feature enables a technique for masking or filtering outgoing light’s intensity to produce patterned illumination. This feature can be used to change the appearance, shape, and intensity of cast light for artistic effects or to simulate complex lighting scenarios with minimal runtime performance impact.
 
-![Shadow Cascades](../Images/lighting/urp-asset-shadows.png)<br/>*The Shadows section in the Universal Render Pipeline asset.*
+### Render Pipeline Converter
 
-### Shadowmask
+A new converter framework for migrating from the Built-in Render Pipeline to URP makes the migration process more robust and supports converting elements other than Materials.
 
-URP 10.1 supports the Shadowmask Lighting Mode. Shadowmask Lighting Mode combines real-time direct lighting with baked indirect lighting. For more information, see the page [Lighting Mode: Shadowmask](https://docs.unity3d.com/Manual/LightMode-Mixed-Shadowmask.html).
+To open the Render Pipeline Converter window, select **Window** > **Rendering** > **Render Pipeline Converter**
 
-<table style="text-align:center; border:none;">
-  <tbody><tr>
-    <td style="width:33%; border:none;"><img src="../Images/whats-new/urp-10/lightmode-subtractive.png" /></td>
-    <td style="width:33%; border:none;"><img src="../Images/whats-new/urp-10/lightmode-all-lights-realtime.png" /></td>
-    <td style="width:33%; border:none;"><img src="../Images/whats-new/urp-10/lightmode-shadowmask.png" /></td>
-  </tr>
-  <tr>
-    <td style="padding:3px; border:none;"><em>Lighting Mode: Subtractive. Shadows within the Maximum Shadow Distance have lower quality.</em></td>
-    <td style="padding:3px; border:none;"><em>Shadows only from real-time lights. Shadows further than the Maximum Distance are missing.</em></td>
-    <td style="padding:3px; border:none;"><em>Lighting Mode: Shadowmask.</em></td>
-  </tr>
-</tbody></table>
+![Render Pipeline Converter](../Images/whats-new/urp-12/render-pipeline-converter-ui.png)
 
-### Parallax mapping and Height Map property
+For more information, see the page [Render Pipeline Converter](../features/rp-converter.md).
 
-URP implements the parallax mapping technique which uses the height map to achieve surface-level occlusion effect. The **Height Map** property is available in the Lit shader. To read more about how parallax mapping works, refer to the [Heightmap](https://docs.unity3d.com/Manual/StandardShaderMaterialParameterHeightMap.html) page.
+### Motion Vectors
 
-The following illustration shows how a mesh looks with only the Base Map (left), Base Map and Normal Map (middle), and Base, Normal, and Height Map (right).
+Motion vector support provides a velocity buffer that captures and stores the per-pixel and screen-space motion of objects from one frame to another.
 
-![Mesh with only the Base Map (left), Base Map and Normal Map (middle), and Base, Normal, and Height Map (right).](../Images/whats-new/urp-10/parallax-height.png)
+### URP Volume system update frequency
+
+![Volume update modes](../Images/whats-new/urp-12/volume-update-modes.png)
+
+URP Volume system update frequency lets you to optimize the performance of your Volumes framework according to your content and target platform requirements.
+
+### URP Global Settings
+
+![URP Global Settings](../Images/whats-new/urp-12/urp-global-settings.png)
+
+The URP Global Settings section lets you define project-wide settings for URP. In this release, URP Global Settings contain the names of Light layers.
+
+### Light Layers
+
+Light Layers let you mask certain lights in a Scene to affect particular meshes. The lights assigned to a specific layer only affect meshes assigned to the same layer.
+
+For more information, see the page [Light layers](../lighting/light-layers.md).
+
+### New URP package samples
+
+New URP samples are available in the Package Manager. The samples show use cases of URP features, their configuration, and practical applications in one or more scenes.
+
+> **Note**: in the current URP version, there is a known issue that prevents the rendering effects from working correctly. [Follow this link to read the description of the issue and how to fix it](../known-issues.md#urp-samples-known-issue-1).
+
+### Lens Flare system
+
+![Lens Flare system](../Images/whats-new/urp-12/urp-lens-flare-art-demo.png)<br/>*A sample URP scene using lens flares*.
+
+This version introduces a new Lens Flare system. Lens Flares simulate the effect of lights refracting inside a camera lens. They are used to represent really bright lights, or, more subtly, they can add a bit more atmosphere to your Scene. The new system, similar to the one present in the Built-in Render Pipeline, allows stacking flares with an improved user interface and adds many more options.
+
+### Enlighten Realtime GI
+
+![Enlighten Realtime GI](../Images/whats-new/urp-12/enlighten-realtime-gi.png)<br/>*A sample scene with Enlighten Realtime GI*.
+
+Enlighten Realtime GI lets you enrich your projects with more dynamic lighting effects by, for example, having moving lights that affect global illumination in scenes. We've extended the platform reach of Enlighten Realtime GI to Apple Silicon, Sony PlayStation(R) 5, and Microsoft Xbox Series X|S platforms.
+
+### SpeedTree 8 vegetation
+
+This release adds support for SpeedTree 8 vegetation to URP, including support for animated vegetation using the SpeedTree wind system. URP uses Shader Graphs to support SpeedTree 8, for more information see the page [SpeedTree Sub Graph Assets](https://docs.unity3d.com/Packages/com.unity.shadergraph@12.0/manual/SpeedTree8-SubGraphAssets.html).
+
+### Shader Graph: Override Material properties
+
+In this release, Shader Graph stacks that have URP as a target have the **Allow Material Override** property. The property is available for Lit and Unlit Material types.
+
+When enabled, this property lets you override certain surface properties on Materials. Before this release, those properties were set in a Shader Graph.
+
+![Allow Material Override property.](../Images/whats-new/urp-12/allow-material-override.png)
 
 ## Improvements
 
 This section contains the overview of the major improvements in this release.
 
-### Shaded Wireframe
+### SSAO improvements
 
-Shaded Wireframe scene view mode works in URP now. Shaded Wireframe helps you check and validate scene geometry, for example, when checking geometry density to select a proper LOD level.
+This release brings multiple SSAO improvements:
 
-![Shaded Wireframe view](../Images/whats-new/urp-10/shaded-wireframe.png)<br/>*Shaded Wireframe scene view.*
+* SSAO supports the Deferred Rendering Path.
 
-### Improved shader stripping
+* Normal maps contribute to the effect.
 
-URP 10 fixes a few issues in the C# shader preprocessor. The fixes improve the speed of shader stripping. The pipeline now compiles different sets of vertex and fragment shaders for the platforms that support it. This improvement lets the pipeline strip vertex shader variants more efficiently. The improvement significantly reduces the number of post-processing shader variants, since most of the variants are in fragment shaders only.
+* SSAO supports Particle Systems and surfaces with Unlit shaders.
 
-### Reduced number of global shader keywords
+* Performance is improved.
 
-Shaders included in the URP package now use local Material keywords instead of global keywords. This increases the amount of available global user-defined Material keywords.
+### SRP settings workflow improvements
 
-### GPU instanced mesh particles
+The SRP settings workflow improvements are a series of UI/UX improvements intended to impact workflows and provide consistency between the SRP render pipelines. For this iteration, the focus was mainly on aligning the light and camera components between URP and HDRP. The changes consist of aligning header design, sub-header designs, expanders, settings order, naming, and the indentation of dependent fields. While these are mostly cosmetic changes, they have a high impact.
 
-GPU instanced mesh particles provide a significant performance improvement compared with CPU rendering. This feature lets you configure your particle systems to render Mesh particles.
+### More optimal handling of the depth buffer with MSAA enabled
+
+Previously, with MSAA enabled, Unity executed an extra depth prepass to populate the depth buffer.
+In this release, with MSAA enabled, Unity doesn't execute the extra depth prepass and reuses the  depth texture from the opaque pass instead (**Note**: this is valid for all but GLES3 platforms).
+
+### SwapBuffer
+
+In this release, Universal Renderer can manage and operate on multiple Camera color buffers in the backend.
+
+You can now use the new [ScriptableRenderPass.Blit](https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@12.0/api/UnityEngine.Rendering.Universal.ScriptableRenderPass.html) method in your Scriptable Renderer Feature to apply effects to the color buffer without managing and handling Camera color buffers yourself. You can use the method to write effects that read and write to the Camera color buffer.
+
+### URP 2D Renderer improvements
+
+This release contains multiple URP 2D Renderer improvements:
+
+* New SceneView Debug Modes in URP let 2D developers access the following views: Mask, Alpha channel, Overdraw or Mipmaps. The Sprite Mask feature has been adjusted to work correctly in SRP.
+
+* The 2D Renderer can now be customized with Renderer Features which let you add custom passes.
+
+* 2D Lights are now integrated in the Light Explorer window, and they are no longer labeled as Experimental.
+
+* 2D shadow optimizations.
+
+* 2D Light textures produced by the 2D Lights are now accessible via the 2D Light Texture node in Shader Graph.
+
+* VFX Graph now supports 2D Unlit shaders.
+
+* A new 2D URP default template has been added. It includes a set of verified 2D tools, so new projects load faster with the entire 2D toolset at your disposal.
+
+* Sprite Atlas v2 with folder support.
+
+* New APIs to find duplicated sprites in several atlases for a single sprite, query for MasterAtlas and IsInBuild.
+
+* 2D Pixel Perfect's Inspector UI has a more intuitive setting display.
+
+* 2D PSD Importer has new UX improvements, better control over the Photoshop layers, and Sprite name mapping.
+
+* 2D Animation updates include bone colors, which can now be set in the visibility panel.
+
+* 2D tilemap improvements.
 
 ## Issues resolved
 
-For information on issues resolved in URP 10, see the [Changelog](../../changelog/CHANGELOG.html).
+For a complete list of issues resolved in URP 12, see the [Changelog](../../changelog/CHANGELOG.html).
 
-For information on the known issues in URP 10, see the section [Known issues](../known-issues.md).
+## Known issues
+
+For information on the known issues in URP 12, see the section [Known issues](../known-issues.md).

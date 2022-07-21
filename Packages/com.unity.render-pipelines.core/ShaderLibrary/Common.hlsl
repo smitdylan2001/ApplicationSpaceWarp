@@ -162,6 +162,11 @@
 #   endif
 #endif
 
+// This is the default keyword combination and needs to be overriden by the platforms that need specific behaviors
+// when enabling conservative depth overrides
+#define SV_POSITION_QUALIFIERS
+#define DEPTH_OFFSET_SEMANTIC SV_Depth
+
 // Include language header
 #if defined (SHADER_API_GAMECORE)
 #include "Packages/com.unity.render-pipelines.gamecore/ShaderLibrary/API/GameCore.hlsl"
@@ -195,6 +200,88 @@
 
 #ifdef SHADER_API_XBOXONE // TODO: to move in .nda package in 21.1
 #define PLATFORM_SUPPORTS_PRIMITIVE_ID_IN_PIXEL_SHADER
+#endif
+
+#if defined(PLATFORM_SUPPORTS_NATIVE_RENDERPASS)
+
+    #if defined(UNITY_COMPILER_DXC)
+
+        //Subpass inputs are disallowed in non-fragment shader stages with DXC so we need some dummy value to use in the fragment function while it's not being compiled
+        #if defined(SHADER_STAGE_FRAGMENT)
+            #define UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(type, idx) [[vk::input_attachment_index(idx)]] SubpassInput<type##4> hlslcc_fbinput_##idx
+            #define UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(type, idx) [[vk::input_attachment_index(idx)]] SubpassInputMS<type##4> hlslcc_fbinput_##idx
+        #else
+            //declaring dummy resources here so that non-fragment shader stage automatic bindings wouldn't diverge from the fragment shader (important for vulkan)
+            #define UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(type, idx) Texture2D dxc_dummy_fbinput_resource##idx; static type DXC_DummySubpassVariable##idx = type(0).xxxx;
+            #define UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(type, idx) Texture2D dxc_dummy_fbinput_resource##idx; static type DXC_DummySubpassVariable##idx = type(0).xxxx
+        #endif
+        // Renderpass inputs: Vulkan/Metal subpass input
+        #define FRAMEBUFFER_INPUT_FLOAT(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(float, idx)
+        #define FRAMEBUFFER_INPUT_FLOAT_MS(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(float, idx)
+        // For halfs
+        #define FRAMEBUFFER_INPUT_HALF(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(half, idx)
+        #define FRAMEBUFFER_INPUT_HALF_MS(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(half, idx)
+        // For ints
+        #define FRAMEBUFFER_INPUT_INT(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(int, idx)
+        #define FRAMEBUFFER_INPUT_INT_MS(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(int, idx)
+        // For uints
+        #define FRAMEBUFFER_INPUT_UINT(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX(uint, idx)
+        #define FRAMEBUFFER_INPUT_UINT_MS(idx) UNITY_DXC_SUBPASS_INPUT_TYPE_INDEX_MS(uint, idx)
+
+        #if defined(SHADER_STAGE_FRAGMENT)
+            #define LOAD_FRAMEBUFFER_INPUT(idx, v2fname) hlslcc_fbinput_##idx.SubpassLoad()
+            #define LOAD_FRAMEBUFFER_INPUT_MS(idx, sampleIdx, v2fname) hlslcc_fbinput_##idx.SubpassLoad(sampleIdx)
+        #else
+            #define LOAD_FRAMEBUFFER_INPUT(idx, v2fname) DXC_DummySubpassVariable##idx
+            #define LOAD_FRAMEBUFFER_INPUT_MS(idx, sampleIdx, v2fname) DXC_DummySubpassVariable##idx
+        #endif
+    #else
+        // For floats
+        #define FRAMEBUFFER_INPUT_FLOAT(idx) cbuffer hlslcc_SubpassInput_f_##idx { float4 hlslcc_fbinput_##idx; }
+        #define FRAMEBUFFER_INPUT_FLOAT_MS(idx) cbuffer hlslcc_SubpassInput_F_##idx { float4 hlslcc_fbinput_##idx[8]; }
+        // For halfs
+        #define FRAMEBUFFER_INPUT_HALF(idx) cbuffer hlslcc_SubpassInput_h_##idx { half4 hlslcc_fbinput_##idx; }
+        #define FRAMEBUFFER_INPUT_HALF_MS(idx) cbuffer hlslcc_SubpassInput_H_##idx { half4 hlslcc_fbinput_##idx[8]; }
+        // For ints
+        #define FRAMEBUFFER_INPUT_INT(idx) cbuffer hlslcc_SubpassInput_i_##idx { int4 hlslcc_fbinput_##idx; }
+        #define FRAMEBUFFER_INPUT_INT_MS(idx) cbuffer hlslcc_SubpassInput_I_##idx { int4 hlslcc_fbinput_##idx[8]; }
+        // For uints
+        #define FRAMEBUFFER_INPUT_UINT(idx) cbuffer hlslcc_SubpassInput_u_##idx { uint4 hlslcc_fbinput_##idx; }
+        #define FRAMEBUFFER_INPUT_UINT_MS(idx) cbuffer hlslcc_SubpassInput_U_##idx { uint4 hlslcc_fbinput_##idx[8]; }
+
+        #define LOAD_FRAMEBUFFER_INPUT(idx, v2fname) hlslcc_fbinput_##idx
+        #define LOAD_FRAMEBUFFER_INPUT_MS(idx, sampleIdx, v2fname) hlslcc_fbinput_##idx[sampleIdx]
+    #endif
+
+#else
+
+// Renderpass inputs: General fallback paths
+#define FRAMEBUFFER_INPUT_FLOAT(idx) TEXTURE2D_FLOAT(_UnityFBInput##idx); float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_HALF(idx) TEXTURE2D_HALF(_UnityFBInput##idx); float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_INT(idx) TEXTURE2D_INT(_UnityFBInput##idx); float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_UINT(idx) TEXTURE2D_UINT(_UnityFBInput##idx); float4 _UnityFBInput##idx##_TexelSize
+
+#define LOAD_FRAMEBUFFER_INPUT(idx, v2fvertexname) _UnityFBInput##idx.Load(uint3(v2fvertexname.xy, 0))
+
+#define FRAMEBUFFER_INPUT_FLOAT_MS(idx) Texture2DMS<float4> _UnityFBInput##idx; float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_HALF_MS(idx) Texture2DMS<float4> _UnityFBInput##idx; float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_INT_MS(idx) Texture2DMS<int4> _UnityFBInput##idx; float4 _UnityFBInput##idx##_TexelSize
+#define FRAMEBUFFER_INPUT_UINT_MS(idx) Texture2DMS<uint4> _UnityFBInput##idx; float4 _UnityFBInput##idx##_TexelSize
+
+#define LOAD_FRAMEBUFFER_INPUT_MS(idx, sampleIdx, v2fvertexname) _UnityFBInput##idx.Load(uint2(v2fvertexname.xy), sampleIdx)
+
+
+#endif
+
+// ----------------------------------------------------------------------------
+// Global Constant buffers API definitions
+// ----------------------------------------------------------------------------
+#if (SHADER_STAGE_RAY_TRACING && UNITY_RAY_TRACING_GLOBAL_RESOURCES)
+    #define GLOBAL_RESOURCE(type, name, reg) type name : register(reg, space1);
+    #define GLOBAL_CBUFFER_START(name, reg) cbuffer name : register(reg, space1) {
+#else
+    #define GLOBAL_RESOURCE(type, name, reg) type name;
+    #define GLOBAL_CBUFFER_START(name, reg) CBUFFER_START(name)
 #endif
 
 // ----------------------------------------------------------------------------
@@ -542,6 +629,11 @@ real FastATan(real x)
     return (x < 0.0) ? -t0 : t0;
 }
 
+real FastAtan2(real y, real x)
+{
+    return FastATan(y / x) + (y >= 0.0 ? PI : -PI) * (x < 0.0);
+}
+
 #if (SHADER_TARGET >= 45)
 uint FastLog2(uint x)
 {
@@ -571,7 +663,7 @@ TEMPLATE_2_REAL(PositivePow, base, power, return pow(abs(base), power))
 // -As a replacement for pow(0,y) where y >= 1, the result of SafePositivePow(x,y) should be close enough to 0.
 // -For cases where we substitute for pow(0,y) where 0 < y < 1, SafePositivePow(x,y) will quickly reach 1 as y -> 0, while
 // normally pow(0,y) would give 0 instead of 1 for all 0 < y.
-// eg: if we #define FLT_EPS  5.960464478e-8 (for fp32), 
+// eg: if we #define FLT_EPS  5.960464478e-8 (for fp32),
 // SafePositivePow(0, 0.1)   = 0.1894646
 // SafePositivePow(0, 0.01)  = 0.8467453
 // SafePositivePow(0, 0.001) = 0.9835021
@@ -694,10 +786,12 @@ float Length2(float3 v)
     return dot(v, v);
 }
 
+#ifndef BUILTIN_TARGET_API
 real Pow4(real x)
 {
     return (x * x) * (x * x);
 }
+#endif
 
 TEMPLATE_3_FLT(RangeRemap, min, max, t, return saturate((t - min) / (max - min)))
 
@@ -778,13 +872,11 @@ float ComputeTextureLOD(float3 duvw_dx, float3 duvw_dy, float3 duvw_dz, float sc
     return max(0.5f * log2(d * (scale * scale)) - bias, 0.0);
 }
 
-
-uint GetMipCount(Texture2D tex)
-{
 #if defined(SHADER_API_D3D11) || defined(SHADER_API_D3D12) || defined(SHADER_API_D3D11_9X) || defined(SHADER_API_XBOXONE) || defined(SHADER_API_PSSL)
     #define MIP_COUNT_SUPPORTED 1
 #endif
-#if (defined(SHADER_API_OPENGL) || defined(SHADER_API_VULKAN)) && !defined(SHADER_STAGE_COMPUTE)
+    // TODO: Bug workaround, switch defines GLCORE when it shouldn't
+#if ((defined(SHADER_API_GLCORE) && !defined(SHADER_API_SWITCH)) || defined(SHADER_API_VULKAN)) && !defined(SHADER_STAGE_COMPUTE)
     // OpenGL only supports textureSize for width, height, depth
     // textureQueryLevels (GL_ARB_texture_query_levels) needs OpenGL 4.3 or above and doesn't compile in compute shaders
     // tex.GetDimensions converted to textureQueryLevels
@@ -792,6 +884,8 @@ uint GetMipCount(Texture2D tex)
 #endif
     // Metal doesn't support high enough OpenGL version
 
+uint GetMipCount(TEXTURE2D_PARAM(tex, smp))
+{
 #if defined(MIP_COUNT_SUPPORTED)
     uint mipLevel, width, height, mipCount;
     mipLevel = width = height = mipCount = 0;
@@ -1186,6 +1280,8 @@ void ApplyDepthOffsetPositionInput(float3 V, float depthOffsetVS, float3 viewFor
 
 #if defined(SHADER_API_VULKAN) || defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
 
+// For the built-in target this is already a defined symbol
+#ifndef BUILTIN_TARGET_API
 real4 PackHeightmap(real height)
 {
     uint a = (uint)(65535.0 * height);
@@ -1196,9 +1292,12 @@ real UnpackHeightmap(real4 height)
 {
     return (height.r + height.g * 256.0) / 257.0; // (255.0 * height.r + 255.0 * 256.0 * height.g) / 65535.0
 }
+#endif
 
 #else
 
+// For the built-in target this is already a defined symbol
+#ifndef BUILTIN_TARGET_API
 real4 PackHeightmap(real height)
 {
     return real4(height, 0, 0, 0);
@@ -1208,6 +1307,7 @@ real UnpackHeightmap(real4 height)
 {
     return height.r;
 }
+#endif
 
 #endif
 
@@ -1224,7 +1324,7 @@ bool HasFlag(uint bitfield, uint flag)
 // Normalize that account for vectors with zero length
 real3 SafeNormalize(float3 inVec)
 {
-    real dp3 = max(FLT_MIN, dot(inVec, inVec));
+    real dp3 = max(REAL_MIN, dot(inVec, inVec));
     return inVec * rsqrt(dp3);
 }
 
@@ -1240,6 +1340,12 @@ bool IsNormalized(float3 inVec)
 real SafeDiv(real numer, real denom)
 {
     return (numer != denom) ? numer / denom : 1;
+}
+
+// Perform a square root safe of imaginary number.
+real SafeSqrt(real x)
+{
+    return sqrt(max(0, x));
 }
 
 // Assumes that (0 <= x <= Pi).
@@ -1267,6 +1373,7 @@ float2 GetFullScreenTriangleTexCoord(uint vertexID)
 
 float4 GetFullScreenTriangleVertexPosition(uint vertexID, float z = UNITY_NEAR_CLIP_VALUE)
 {
+    // note: the triangle vertex position coordinates are x2 so the returned UV coordinates are in range -1, 1 on the screen.
     float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
     return float4(uv * 2.0 - 1.0, z, 1.0);
 }

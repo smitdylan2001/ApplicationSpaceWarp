@@ -1,6 +1,6 @@
 #if ENABLE_INPUT_SYSTEM && ENABLE_INPUT_SYSTEM_PACKAGE
-    #define USE_INPUT_SYSTEM
-    using UnityEngine.InputSystem;
+#define USE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
 #endif
 
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace UnityEngine.Rendering
     /// <summary>
     /// Utility Free Camera component.
     /// </summary>
-    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Free-Camera" + Documentation.endURL)]
+    [CoreRPHelpURLAttribute("Free-Camera")]
     public class FreeCamera : MonoBehaviour
     {
         const float k_MouseSensitivityMultiplier = 0.01f;

@@ -1,17 +1,15 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Rendering.Universal
 {
     /// <summary>
     /// Contains properties and helper functions that you can use when rendering.
     /// </summary>
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public static class RenderingUtils
+    public static class RenderingUtils
     {
-        static List<ShaderTagId> m_LegacyShaderPassNames = new List<ShaderTagId>()
+        static List<ShaderTagId> m_LegacyShaderPassNames = new List<ShaderTagId>
         {
             new ShaderTagId("Always"),
             new ShaderTagId("ForwardBase"),
@@ -20,6 +18,16 @@ namespace UnityEngine.Rendering.Universal
             new ShaderTagId("VertexLMRGBM"),
             new ShaderTagId("VertexLM"),
         };
+
+        static AttachmentDescriptor s_EmptyAttachment = new AttachmentDescriptor(GraphicsFormat.None);
+        internal static AttachmentDescriptor emptyAttachment
+        {
+            get
+            {
+                return s_EmptyAttachment;
+            }
+        }
+
 
         static Mesh s_FullscreenMesh = null;
 
@@ -66,7 +74,7 @@ namespace UnityEngine.Rendering.Universal
             get
             {
                 // TODO: For now disabling SSBO until figure out Vulkan binding issues.
-                // When enabling this also enable it in shader side in Input.hlsl
+                // When enabling this also enable USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA in shader side in Input.hlsl
                 return false;
 
                 // We don't use SSBO in D3D because we can't figure out without adding shader variants if platforms is D3D10.
@@ -75,6 +83,12 @@ namespace UnityEngine.Rendering.Universal
                 //    (deviceType == GraphicsDeviceType.Metal || deviceType == GraphicsDeviceType.Vulkan ||
                 //     deviceType == GraphicsDeviceType.PlayStation4 || deviceType == GraphicsDeviceType.PlayStation5 || deviceType == GraphicsDeviceType.XboxOne);
             }
+        }
+
+        internal static bool SupportsLightLayers(GraphicsDeviceType type)
+        {
+            // GLES2 does not support bitwise operations.
+            return type != GraphicsDeviceType.OpenGLES2;
         }
 
         static Material s_ErrorMaterial;
@@ -124,7 +138,6 @@ namespace UnityEngine.Rendering.Universal
                 cmd.SetGlobalMatrix(ShaderPropertyId.inverseViewAndProjectionMatrix, inverseViewProjection);
             }
         }
-
 
 #if ENABLE_VR && ENABLE_XR_MODULE
         internal static readonly int UNITY_STEREO_MATRIX_V = Shader.PropertyToID("unity_StereoMatrixV");
@@ -190,7 +203,7 @@ namespace UnityEngine.Rendering.Universal
                 cmd.SetGlobalMatrixArray(UNITY_STEREO_MATRIX_PREV_VP, stereoConstants.prevMVViewProjMatrix);
 
             cmd.SetGlobalMatrixArray(UNITY_STEREO_CAMERA_PROJECTION, cameraProjMatrix);
-            
+
             if (setInverseMatrices)
             {
                 cmd.SetGlobalMatrixArray(UNITY_STEREO_MATRIX_IV, stereoConstants.invViewMatrix);
@@ -201,6 +214,7 @@ namespace UnityEngine.Rendering.Universal
             }
             cmd.SetGlobalVectorArray(UNITY_STEREO_VECTOR_CAMPOS, stereoConstants.worldSpaceCameraPos);
         }
+
 #endif
 
         internal static void Blit(CommandBuffer cmd,
@@ -258,7 +272,7 @@ namespace UnityEngine.Rendering.Universal
 
         // Caches render texture format support. SystemInfo.SupportsRenderTextureFormat and IsFormatSupported allocate memory due to boxing.
         static Dictionary<RenderTextureFormat, bool> m_RenderTextureFormatSupport = new Dictionary<RenderTextureFormat, bool>();
-        static Dictionary<GraphicsFormat, Dictionary<FormatUsage, bool> > m_GraphicsFormatSupport = new Dictionary<GraphicsFormat, Dictionary<FormatUsage, bool> >();
+        static Dictionary<GraphicsFormat, Dictionary<FormatUsage, bool>> m_GraphicsFormatSupport = new Dictionary<GraphicsFormat, Dictionary<FormatUsage, bool>>();
 
         internal static void ClearSystemInfoCache()
         {
@@ -320,7 +334,7 @@ namespace UnityEngine.Rendering.Universal
         internal static int GetLastValidColorBufferIndex(RenderTargetIdentifier[] colorBuffers)
         {
             int i = colorBuffers.Length - 1;
-            for(; i>=0; --i)
+            for (; i >= 0; --i)
             {
                 if (colorBuffers[i] != 0)
                     break;
@@ -413,7 +427,7 @@ namespace UnityEngine.Rendering.Universal
         /// <returns></returns>
         internal static int LastValid(RenderTargetIdentifier[] source)
         {
-            for (int i = source.Length-1; i >= 0; --i)
+            for (int i = source.Length - 1; i >= 0; --i)
             {
                 if (source[i] != 0)
                     return i;

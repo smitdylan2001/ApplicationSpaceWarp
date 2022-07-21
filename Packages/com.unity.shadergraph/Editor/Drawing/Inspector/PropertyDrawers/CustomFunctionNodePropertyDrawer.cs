@@ -7,7 +7,7 @@ using UnityEditor.ShaderGraph.Drawing.Inspector;
 using UnityEngine.UIElements;
 using UnityEngine;
 
-namespace  UnityEditor.ShaderGraph.Drawing.Inspector.PropertyDrawers
+namespace UnityEditor.ShaderGraph.Drawing.Inspector.PropertyDrawers
 {
     [SGPropertyDrawer(typeof(CustomFunctionNode))]
     public class CustomFunctionNodePropertyDrawer : IPropertyDrawer, IGetNodePropertyDrawerPropertyData
@@ -51,7 +51,7 @@ namespace  UnityEditor.ShaderGraph.Drawing.Inspector.PropertyDrawers
             InspectableAttribute attribute)
         {
             return this.CreateGUI(
-                (CustomFunctionNode) actualObject,
+                (CustomFunctionNode)actualObject,
                 attribute,
                 out var propertyVisualElement);
         }

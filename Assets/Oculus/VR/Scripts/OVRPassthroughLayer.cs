@@ -1,14 +1,22 @@
-/************************************************************************************
-Copyright : Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
-
-Your use of this SDK or tool is subject to the Oculus SDK License Agreement, available at
-https://developer.oculus.com/licenses/oculussdk/
-
-Unless required by applicable law or agreed to in writing, the Utilities SDK distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-ANY KIND, either express or implied. See the License for the specific language governing
-permissions and limitations under the License.
-************************************************************************************/
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ *
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 using System;
 using System.Collections.Generic;
@@ -294,11 +302,13 @@ public class OVRPassthroughLayer : MonoBehaviour
 	}
 
 	/// <summary>
-	/// This method allows to set brightness, contast, and saturation adjustment for the passthrough images. TODO(T113451945)
+	/// This method allows to configure brightness and contrast adjustment for Passthrough images.
 	/// </summary>
-	/// <param name="brightness">TODO(T113451945).</param>
-	/// <param name="contrast">TODO(T113451945).</param>
-	/// <param name="saturation">TODO(T113451945).</param>
+	/// <param name="brightness">Modify the brightness of Passthrough. Valid range: [-1, 1]. A
+	///   value of 0 means that brightness is left unchanged.</param>
+	/// <param name="contrast">Modify the contrast of Passthrough. Valid range: [-1, 1]. A value of 0
+  ///   means that contrast is left unchanged.</param>
+	/// <param name="saturation">Ignored, reserved for future use.</param>
 	public void SetBrightnessContrastSaturation(float brightness = 0.0f, float contrast = 0.0f, float saturation = 0.0f)
 	{
 		colorMapType = ColorMapType.BrightnessContrastSaturation;

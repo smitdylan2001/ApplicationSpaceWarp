@@ -43,12 +43,27 @@ namespace UnityEditor.ShaderGraph
             }
         }
 
+        [SerializeField]
+        private TextureSamplerState.Anisotropic m_aniso = TextureSamplerState.Anisotropic.None;
+
+        public TextureSamplerState.Anisotropic anisotropic
+        {
+            get { return m_aniso; }
+            set
+            {
+                if (m_aniso == value)
+                    return;
+
+                m_aniso = value;
+                Dirty(ModificationScope.Graph);
+            }
+        }
+
         public SamplerStateNode()
         {
             name = "Sampler State";
             UpdateNodeAfterDeserialization();
         }
-
 
         public override bool hasPreview { get { return false; } }
 
@@ -86,26 +101,26 @@ namespace UnityEditor.ShaderGraph
                 value = new TextureSamplerState()
                 {
                     filter = m_filter,
-                    wrap =  m_wrap
+                    wrap = m_wrap,
+                    anisotropic = m_aniso
                 }
             });
         }
 
         public override string GetVariableNameForNode()
         {
-            return string.Format(@"SamplerState_{0}_{1}",
-                Enum.GetName(typeof(TextureSamplerState.FilterMode), filter), 
-                Enum.GetName(typeof(TextureSamplerState.WrapMode), wrap));
+            return TextureSamplerState.BuildSamplerStateName(filter, wrap, anisotropic);
         }
 
         public AbstractShaderProperty AsShaderProperty()
         {
-            return new SamplerStateShaderProperty 
-            { 
+            return new SamplerStateShaderProperty
+            {
                 value = new TextureSamplerState()
                 {
                     filter = this.filter,
-                    wrap = this.wrap
+                    wrap = this.wrap,
+                    anisotropic = this.anisotropic
                 }
             };
         }

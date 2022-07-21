@@ -23,7 +23,7 @@ The title bar at the top of the **Shader Graph Window** contains actions that ca
 
 ## Workspace
 
-The workspace is where you create [Node](Node.md) networks. 
+The workspace is where you create [Node](Node.md) networks.
 You can navigate the workspace by holding Alt and left mouse button to pan and zoom with the scroll wheel.
 
 You can hold left mouse button and drag to select multiple [Nodes](Node.md) with a marquee. There are also various shortcut keys to use for better workflow.
@@ -52,7 +52,7 @@ Right clicking within the workspace will open a context menu. Note that right cl
 | Duplicate | Duplicates selected [Nodes](Node.md) |
 | Select / Unused Nodes | Selects all nodes on the graph that are not contributing to the final shader output from the Master Stack. |
 | View / Collapse Ports | Collapses unused ports on all selected [Nodes](Node.md) |
-| View / Expand Ports | Expands unused ports on all selected [Nodes](Node.md) |
+| Vierw / Expand Ports | Expands unused ports on all selected [Nodes](Node.md) |
 | View / Collapse Previews | Collapses previews on all selected [Nodes](Node.md) |
 | View / Expand Previews | Expands previews on all selected [Nodes](Node.md) |
 | Precision / Inherit | Sets precision of all selected Nodes to Inherit. |

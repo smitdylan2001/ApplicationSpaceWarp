@@ -4,10 +4,10 @@ using System;
 
 namespace UnityEditor.Rendering
 {
-	/// <summary>
-	/// Material upgrader and relevant utilities for SpeedTree 8.
-	/// </summary>
-	public class SpeedTree8MaterialUpgrader : MaterialUpgrader
+    /// <summary>
+    /// Material upgrader and relevant utilities for SpeedTree 8.
+    /// </summary>
+    public class SpeedTree8MaterialUpgrader : MaterialUpgrader
     {
         private enum WindQuality
         {
@@ -41,20 +41,26 @@ namespace UnityEditor.Rendering
         {
             RenameShader(sourceShaderName, destShaderName, finalizer);
             RenameFloat("_WindQuality", "_WINDQUALITY");
-            RenameFloat("_TwoSided", "_CullMode"); // Currently only used in HD. Update this once URP per-material cullmode is enabled via shadergraph. 
+            RenameFloat("_TwoSided", "_CullMode"); // Currently only used in HD. Update this once URP per-material cullmode is enabled via shadergraph.
         }
 
         private static void ImportNewSpeedTree8Material(Material mat, int windQuality, bool isBillboard)
         {
+            if (mat == null)
+                return;
+
             int cullmode = 0;
             mat.SetFloat("_WINDQUALITY", windQuality);
             if (isBillboard)
             {
-                mat.EnableKeyword("EFFECT_BILLBOARD");
+                mat.SetFloat("EFFECT_BILLBOARD", 1.0f);
                 cullmode = 2;
             }
             if (mat.HasProperty("_CullMode"))
                 mat.SetFloat("_CullMode", cullmode);
+
+            if (mat.IsKeywordEnabled("EFFECT_EXTRA_TEX"))
+                mat.SetFloat("EFFECT_EXTRA_TEX", 1.0f);
         }
 
         /// <summary>
@@ -75,10 +81,11 @@ namespace UnityEditor.Rendering
                 foreach (Renderer r in lod.renderers)
                 {
                     // Override default motion vector generation mode pending
-                    // proper motion vector integration in SRPs. 
-                    r.motionVectorGenerationMode = MotionVectorGenerationMode.Camera; 
+                    // proper motion vector integration in SRPs.
+                    r.motionVectorGenerationMode = MotionVectorGenerationMode.Camera;
                     foreach (Material m in r.sharedMaterials)
                     {
+                        float cutoff = stImporter.alphaTestRef;
                         ImportNewSpeedTree8Material(m, wq, isBillboard);
                         if (finalizer != null)
                             finalizer(m);
@@ -89,8 +96,7 @@ namespace UnityEditor.Rendering
 
         /// <summary>
         /// Preserves wind quality and billboard settings while you are upgrading a SpeedTree 8 material from previous versions of SpeedTree 8.
-        /// To determine which WindQuality to use, Unity checks the keywords first and then the _WindQuality float value. 
-	/// See SpeedTree in the Unity Manual for the values associated with different WindQuality settings.
+        /// Wind priority order is enabled keyword > _WindQuality float value.
         /// Should work for upgrading versions within a pipeline and from standard to current pipeline.
         /// </summary>
         /// <param name="material">SpeedTree 8 material to upgrade.</param>
@@ -137,7 +143,6 @@ namespace UnityEditor.Rendering
         {
             if (material == null)
                 return;
-
             for (int i = 0; i < (int)WindQuality.Count; i++)
             {
                 material.DisableKeyword(WindQualityString[i]);

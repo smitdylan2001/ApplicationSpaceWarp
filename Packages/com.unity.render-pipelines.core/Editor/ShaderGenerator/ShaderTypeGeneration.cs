@@ -487,9 +487,9 @@ namespace UnityEditor.Rendering
                     }
 
                     shaderText +=
-                                //"\t"
-                                "    " // unity convention use space instead of tab...
-                                + "dest." + acc.name + arrayAccess + " = newValue;\n";
+                        //"\t"
+                        "    "         // unity convention use space instead of tab...
+                        + "dest." + acc.name + arrayAccess + " = newValue;\n";
                     shaderText += "}\n";
                 }
             }
@@ -537,9 +537,9 @@ namespace UnityEditor.Rendering
                     }
 
                     shaderText +=
-                                //"\t"
-                                "    " // unity convention use space instead of tab...
-                                + "return value." + acc.name + swizzle + arrayAccess + ";\n";
+                        //"\t"
+                        "    "         // unity convention use space instead of tab...
+                        + "return value." + acc.name + swizzle + arrayAccess + ";\n";
                     shaderText += "}\n";
                 }
             }
@@ -611,8 +611,7 @@ namespace UnityEditor.Rendering
                     {
                         if (debugField.checkIsNormalized)
                         {
-                            shaderText += "            result = IsNormalized(" + lowerStructName + "." + debugField.fieldName +")? " + lowerStructName + "." + debugField.fieldName + " * 0.5 + 0.5 : float3(1.0, 0.0, 0.0);\n";
-
+                            shaderText += "            result = IsNormalized(" + lowerStructName + "." + debugField.fieldName + ")? " + lowerStructName + "." + debugField.fieldName + " * 0.5 + 0.5 : float3(1.0, 0.0, 0.0);\n";
                         }
                         else
                         {
@@ -833,6 +832,7 @@ namespace UnityEditor.Rendering
             }
             return gettersString;
         }
+
         private string EmitPackedSetters()
         {
             string settersString = "";
@@ -926,6 +926,7 @@ namespace UnityEditor.Rendering
             }
             return settersString;
         }
+
         private string EmitPackedInit()
         {
             string initString = "";

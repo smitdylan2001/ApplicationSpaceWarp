@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Unity.Collections;
-using UnityEngine.Scripting.APIUpdating;
 
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.Experimental.Rendering;
@@ -9,14 +8,44 @@ using Lightmapping = UnityEngine.Experimental.GlobalIllumination.Lightmapping;
 
 namespace UnityEngine.Rendering.Universal
 {
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public enum MixedLightingSetup
+    public enum MixedLightingSetup
     {
         None,
         ShadowMask,
         Subtractive,
     };
 
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public struct RenderingData
+    /// <summary>
+    /// Enumeration that indicates what kind of image scaling is occurring if any
+    /// </summary>
+    internal enum ImageScalingMode
+    {
+        /// No scaling
+        None,
+
+        /// Upscaling to a larger image
+        Upscaling,
+
+        /// Downscaling to a smaller image
+        Downscaling
+    }
+
+    /// <summary>
+    /// Enumeration that indicates what kind of upscaling filter is being used
+    /// </summary>
+    internal enum ImageUpscalingFilter
+    {
+        /// Bilinear filtering
+        Linear,
+
+        /// Nearest-Neighbor filtering
+        Point,
+
+        /// FidelityFX Super Resolution
+        FSR
+    }
+
+    public struct RenderingData
     {
         public CullingResults cullResults;
         public CameraData cameraData;
@@ -32,17 +61,26 @@ namespace UnityEngine.Rendering.Universal
         public bool postProcessingEnabled;
     }
 
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public struct LightData
+    public struct LightData
     {
         public int mainLightIndex;
         public int additionalLightsCount;
         public int maxPerObjectAdditionalLightsCount;
         public NativeArray<VisibleLight> visibleLights;
+        internal NativeArray<int> originalIndices;
         public bool shadeAdditionalLightsPerVertex;
         public bool supportsMixedLighting;
+        public bool reflectionProbeBoxProjection;
+        public bool reflectionProbeBlending;
+        public bool supportsLightLayers;
+
+        /// <summary>
+        /// True if additional lights enabled.
+        /// </summary>
+        public bool supportsAdditionalLights;
     }
 
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public struct CameraData
+    public struct CameraData
     {
         // Internal camera data as we are not yet sure how to expose View in stereo context.
         // We might change this API soon.
@@ -102,12 +140,22 @@ namespace UnityEngine.Rendering.Universal
         internal int pixelHeight;
         internal float aspectRatio;
         public float renderScale;
+        internal ImageScalingMode imageScalingMode;
+        internal ImageUpscalingFilter upscalingFilter;
+        internal bool fsrOverrideSharpness;
+        internal float fsrSharpness;
         public bool clearDepth;
         public CameraType cameraType;
         public bool isDefaultViewport;
         public bool isHdrEnabled;
         public bool requiresDepthTexture;
         public bool requiresOpaqueTexture;
+
+        /// <summary>
+        /// Returns true if post processing passes require depth texture.
+        /// </summary>
+        public bool postProcessingRequiresDepthTexture;
+
 #if ENABLE_VR && ENABLE_XR_MODULE
         public bool xrRendering;
 #endif
@@ -120,7 +168,7 @@ namespace UnityEngine.Rendering.Universal
                     return !xr.renderTargetDesc.sRGB && (QualitySettings.activeColorSpace == ColorSpace.Linear);
 #endif
 
-                return Display.main.requiresSrgbBlitToBackbuffer;
+                return targetTexture == null && Display.main.requiresSrgbBlitToBackbuffer;
             }
         }
 
@@ -133,6 +181,8 @@ namespace UnityEngine.Rendering.Universal
         /// True if the camera rendering is for the preview window in the editor
         /// </summary>
         public bool isPreviewCamera => cameraType == CameraType.Preview;
+
+        internal bool isRenderPassSupportedCamera => (cameraType == CameraType.Game || cameraType == CameraType.Reflection);
 
         /// <summary>
         /// True if the camera device projection matrix is flipped. This happens when the pipeline is rendering
@@ -191,22 +241,38 @@ namespace UnityEngine.Rendering.Universal
         /// When rendering a stack of cameras only the last camera in the stack will resolve to camera target.
         /// </summary>
         public bool resolveFinalTarget;
+
+        /// <summary>
+        /// Camera position in world space.
+        /// </summary>
+        public Vector3 worldSpaceCameraPos;
     }
 
-    [MovedFrom("UnityEngine.Rendering.LWRP")] public struct ShadowData
+    public struct ShadowData
     {
         public bool supportsMainLightShadows;
+        [Obsolete("Obsolete, this feature was replaced by new 'ScreenSpaceShadows' renderer feature")]
         public bool requiresScreenSpaceShadowResolve;
         public int mainLightShadowmapWidth;
         public int mainLightShadowmapHeight;
         public int mainLightShadowCascadesCount;
         public Vector3 mainLightShadowCascadesSplit;
+        /// <summary>
+        /// Main light last cascade shadow fade border.
+        /// Value represents the width of shadow fade that ranges from 0 to 1.
+        /// Where value 0 is used for no shadow fade.
+        /// </summary>
+        public float mainLightShadowCascadeBorder;
         public bool supportsAdditionalLightShadows;
         public int additionalLightsShadowmapWidth;
         public int additionalLightsShadowmapHeight;
         public bool supportsSoftShadows;
         public int shadowmapDepthBufferBits;
         public List<Vector4> bias;
+        public List<int> resolution;
+
+        internal bool isKeywordAdditionalLightShadowsEnabled;
+        internal bool isKeywordSoftShadowsEnabled;
     }
 
     // Precomputed tile data.
@@ -237,14 +303,18 @@ namespace UnityEngine.Rendering.Universal
         public Vector4 color;
         public Vector4 attenuation; // .xy are used by DistanceAttenuation - .zw are used by AngleAttenuation (for SpotLights)
         public Vector3 spotDirection;   // for spotLights
-        public int lightIndex;
+        public int flags;
         public Vector4 occlusionProbeInfo;
+        public uint layerMask;
     }
 
     internal static class ShaderPropertyId
     {
         public static readonly int glossyEnvironmentColor = Shader.PropertyToID("_GlossyEnvironmentColor");
         public static readonly int subtractiveShadowColor = Shader.PropertyToID("_SubtractiveShadowColor");
+
+        public static readonly int glossyEnvironmentCubeMap = Shader.PropertyToID("_GlossyEnvironmentCubeMap");
+        public static readonly int glossyEnvironmentCubeMapHDR = Shader.PropertyToID("_GlossyEnvironmentCubeMap_HDR");
 
         public static readonly int ambientSkyColor = Shader.PropertyToID("unity_AmbientSky");
         public static readonly int ambientEquatorColor = Shader.PropertyToID("unity_AmbientEquator");
@@ -262,6 +332,9 @@ namespace UnityEngine.Rendering.Universal
         public static readonly int projectionParams = Shader.PropertyToID("_ProjectionParams");
         public static readonly int zBufferParams = Shader.PropertyToID("_ZBufferParams");
         public static readonly int orthoParams = Shader.PropertyToID("unity_OrthoParams");
+        public static readonly int globalMipBias = Shader.PropertyToID("_GlobalMipBias");
+
+        public static readonly int screenSize = Shader.PropertyToID("_ScreenSize");
 
         public static readonly int viewMatrix = Shader.PropertyToID("unity_MatrixV");
         public static readonly int projectionMatrix = Shader.PropertyToID("glstate_matrix_projection");
@@ -276,6 +349,12 @@ namespace UnityEngine.Rendering.Universal
         public static readonly int worldToCameraMatrix = Shader.PropertyToID("unity_WorldToCamera");
         public static readonly int cameraToWorldMatrix = Shader.PropertyToID("unity_CameraToWorld");
 
+        public static readonly int cameraWorldClipPlanes = Shader.PropertyToID("unity_CameraWorldClipPlanes");
+
+        public static readonly int billboardNormal = Shader.PropertyToID("unity_BillboardNormal");
+        public static readonly int billboardTangent = Shader.PropertyToID("unity_BillboardTangent");
+        public static readonly int billboardCameraParams = Shader.PropertyToID("unity_BillboardCameraParams");
+
         public static readonly int sourceTex = Shader.PropertyToID("_SourceTex");
         public static readonly int scaleBias = Shader.PropertyToID("_ScaleBias");
         public static readonly int scaleBiasRt = Shader.PropertyToID("_ScaleBiasRt");
@@ -288,19 +367,32 @@ namespace UnityEngine.Rendering.Universal
     {
         public ColorGradingMode gradingMode;
         public int lutSize;
+        /// <summary>
+        /// True if fast approximation functions are used when converting between the sRGB and Linear color spaces, false otherwise.
+        /// </summary>
+        public bool useFastSRGBLinearConversion;
     }
 
     public static class ShaderKeywordStrings
     {
         public static readonly string MainLightShadows = "_MAIN_LIGHT_SHADOWS";
         public static readonly string MainLightShadowCascades = "_MAIN_LIGHT_SHADOWS_CASCADE";
+        public static readonly string MainLightShadowScreen = "_MAIN_LIGHT_SHADOWS_SCREEN";
+        public static readonly string CastingPunctualLightShadow = "_CASTING_PUNCTUAL_LIGHT_SHADOW"; // This is used during shadow map generation to differentiate between directional and punctual light shadows, as they use different formulas to apply Normal Bias
         public static readonly string AdditionalLightsVertex = "_ADDITIONAL_LIGHTS_VERTEX";
         public static readonly string AdditionalLightsPixel = "_ADDITIONAL_LIGHTS";
+        internal static readonly string ClusteredRendering = "_CLUSTERED_RENDERING";
         public static readonly string AdditionalLightShadows = "_ADDITIONAL_LIGHT_SHADOWS";
+        public static readonly string ReflectionProbeBoxProjection = "_REFLECTION_PROBE_BOX_PROJECTION";
+        public static readonly string ReflectionProbeBlending = "_REFLECTION_PROBE_BLENDING";
         public static readonly string SoftShadows = "_SHADOWS_SOFT";
         public static readonly string MixedLightingSubtractive = "_MIXED_LIGHTING_SUBTRACTIVE"; // Backward compatibility
         public static readonly string LightmapShadowMixing = "LIGHTMAP_SHADOW_MIXING";
         public static readonly string ShadowsShadowMask = "SHADOWS_SHADOWMASK";
+        public static readonly string LightLayers = "_LIGHT_LAYERS";
+        public static readonly string RenderPassEnabled = "_RENDER_PASS_ENABLED";
+        public static readonly string BillboardFaceCameraPos = "BILLBOARD_FACE_CAMERA_POS";
+        public static readonly string LightCookies = "_LIGHT_COOKIES";
 
         public static readonly string DepthNoMsaa = "_DEPTH_NO_MSAA";
         public static readonly string DepthMsaa2 = "_DEPTH_MSAA_2";
@@ -308,6 +400,14 @@ namespace UnityEngine.Rendering.Universal
         public static readonly string DepthMsaa8 = "_DEPTH_MSAA_8";
 
         public static readonly string LinearToSRGBConversion = "_LINEAR_TO_SRGB_CONVERSION";
+        internal static readonly string UseFastSRGBLinearConversion = "_USE_FAST_SRGB_LINEAR_CONVERSION";
+
+        public static readonly string DBufferMRT1 = "_DBUFFER_MRT1";
+        public static readonly string DBufferMRT2 = "_DBUFFER_MRT2";
+        public static readonly string DBufferMRT3 = "_DBUFFER_MRT3";
+        public static readonly string DecalNormalBlendLow = "_DECAL_NORMAL_BLEND_LOW";
+        public static readonly string DecalNormalBlendMedium = "_DECAL_NORMAL_BLEND_MEDIUM";
+        public static readonly string DecalNormalBlendHigh = "_DECAL_NORMAL_BLEND_HIGH";
 
         public static readonly string SmaaLow = "_SMAA_PRESET_LOW";
         public static readonly string SmaaMedium = "_SMAA_PRESET_MEDIUM";
@@ -328,6 +428,9 @@ namespace UnityEngine.Rendering.Universal
         public static readonly string Fxaa = "_FXAA";
         public static readonly string Dithering = "_DITHERING";
         public static readonly string ScreenSpaceOcclusion = "_SCREEN_SPACE_OCCLUSION";
+        public static readonly string PointSampling = "_POINT_SAMPLING";
+        public static readonly string Rcas = "_RCAS";
+        public static readonly string Gamma20 = "_GAMMA_20";
 
         public static readonly string HighQualitySampling = "_HIGH_QUALITY_SAMPLING";
 
@@ -338,16 +441,29 @@ namespace UnityEngine.Rendering.Universal
         public static readonly string _SPOT = "_SPOT";
         public static readonly string _DIRECTIONAL = "_DIRECTIONAL";
         public static readonly string _POINT = "_POINT";
-        public static readonly string _DEFERRED_ADDITIONAL_LIGHT_SHADOWS = "_DEFERRED_ADDITIONAL_LIGHT_SHADOWS";
+        public static readonly string _DEFERRED_STENCIL = "_DEFERRED_STENCIL";
+        public static readonly string _DEFERRED_FIRST_LIGHT = "_DEFERRED_FIRST_LIGHT";
+        public static readonly string _DEFERRED_MAIN_LIGHT = "_DEFERRED_MAIN_LIGHT";
         public static readonly string _GBUFFER_NORMALS_OCT = "_GBUFFER_NORMALS_OCT";
-        public static readonly string _DEFERRED_SUBTRACTIVE_LIGHTING = "_DEFERRED_SUBTRACTIVE_LIGHTING";
+        public static readonly string _DEFERRED_MIXED_LIGHTING = "_DEFERRED_MIXED_LIGHTING";
         public static readonly string LIGHTMAP_ON = "LIGHTMAP_ON";
+        public static readonly string DYNAMICLIGHTMAP_ON = "DYNAMICLIGHTMAP_ON";
         public static readonly string _ALPHATEST_ON = "_ALPHATEST_ON";
         public static readonly string DIRLIGHTMAP_COMBINED = "DIRLIGHTMAP_COMBINED";
         public static readonly string _DETAIL_MULX2 = "_DETAIL_MULX2";
         public static readonly string _DETAIL_SCALED = "_DETAIL_SCALED";
         public static readonly string _CLEARCOAT = "_CLEARCOAT";
         public static readonly string _CLEARCOATMAP = "_CLEARCOATMAP";
+        public static readonly string DEBUG_DISPLAY = "DEBUG_DISPLAY";
+
+        public static readonly string _EMISSION = "_EMISSION";
+        public static readonly string _RECEIVE_SHADOWS_OFF = "_RECEIVE_SHADOWS_OFF";
+        public static readonly string _SURFACE_TYPE_TRANSPARENT = "_SURFACE_TYPE_TRANSPARENT";
+        public static readonly string _ALPHAPREMULTIPLY_ON = "_ALPHAPREMULTIPLY_ON";
+        public static readonly string _ALPHAMODULATE_ON = "_ALPHAMODULATE_ON";
+        public static readonly string _NORMALMAP = "_NORMALMAP";
+
+        public static readonly string EDITOR_VISUALIZATION = "EDITOR_VISUALIZATION";
 
         // XR
         public static readonly string UseDrawProcedural = "_USE_DRAW_PROCEDURAL";
@@ -367,6 +483,7 @@ namespace UnityEngine.Rendering.Universal
         static Vector4 k_DefaultLightsProbeChannel = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
         static List<Vector4> m_ShadowBiasData = new List<Vector4>();
+        static List<int> m_ShadowResolutionData = new List<int>();
 
         /// <summary>
         /// Checks if a camera is a game camera.
@@ -418,42 +535,6 @@ namespace UnityEngine.Rendering.Universal
             return false;
         }
 
-#if ENABLE_VR && ENABLE_VR_MODULE
-        static List<XR.XRDisplaySubsystem> displaySubsystemList = new List<XR.XRDisplaySubsystem>();
-        static XR.XRDisplaySubsystem GetFirstXRDisplaySubsystem()
-        {
-            XR.XRDisplaySubsystem display = null;
-            SubsystemManager.GetInstances(displaySubsystemList);
-
-            if (displaySubsystemList.Count > 0)
-                display = displaySubsystemList[0];
-
-            return display;
-        }
-
-        // NB: This method is required for a hotfix in Hololens to prevent creating a render texture when using a renderer
-        // with custom render pass.
-        // TODO: Remove this method and usages when we have proper dependency tracking in the pipeline to know
-        // when a render pass requires camera color as input.
-        internal static bool IsRunningHololens(CameraData cameraData)
-        {
-#if PLATFORM_WINRT
-            if (cameraData.xr.enabled)
-            {
-                var platform = Application.platform;
-                if (platform == RuntimePlatform.WSAPlayerX86 || platform == RuntimePlatform.WSAPlayerARM || platform == RuntimePlatform.WSAPlayerX64)
-                {
-                    var displaySubsystem = GetFirstXRDisplaySubsystem();
-                    
-                    if (displaySubsystem != null && !displaySubsystem.displayOpaque)
-                        return true;
-                }
-            }
-#endif
-            return false;
-        }
-#endif
-
         Comparison<Camera> cameraComparison = (camera1, camera2) => { return (int)camera1.depth - (int)camera2.depth; };
 #if UNITY_2021_1_OR_NEWER
         void SortCameras(List<Camera> cameras)
@@ -461,36 +542,41 @@ namespace UnityEngine.Rendering.Universal
             if (cameras.Count > 1)
                 cameras.Sort(cameraComparison);
         }
+
 #else
         void SortCameras(Camera[] cameras)
         {
             if (cameras.Length > 1)
                 Array.Sort(cameras, cameraComparison);
         }
+
 #endif
+
+        static GraphicsFormat MakeRenderTextureGraphicsFormat(bool isHdrEnabled, bool needsAlpha)
+        {
+            if (isHdrEnabled)
+            {
+                if (!needsAlpha && RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.B10G11R11_UFloatPack32, FormatUsage.Linear | FormatUsage.Render))
+                    return GraphicsFormat.B10G11R11_UFloatPack32;
+                if (RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.R16G16B16A16_SFloat, FormatUsage.Linear | FormatUsage.Render))
+                    return GraphicsFormat.R16G16B16A16_SFloat;
+                return SystemInfo.GetGraphicsFormat(DefaultFormat.HDR); // This might actually be a LDR format on old devices.
+            }
+
+            return SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
+        }
 
         static RenderTextureDescriptor CreateRenderTextureDescriptor(Camera camera, float renderScale,
             bool isHdrEnabled, int msaaSamples, bool needsAlpha, bool requiresOpaqueTexture)
         {
             RenderTextureDescriptor desc;
-            GraphicsFormat renderTextureFormatDefault = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
 
             if (camera.targetTexture == null)
             {
                 desc = new RenderTextureDescriptor(camera.pixelWidth, camera.pixelHeight);
                 desc.width = (int)((float)desc.width * renderScale);
                 desc.height = (int)((float)desc.height * renderScale);
-
-
-                GraphicsFormat hdrFormat;
-                if (!needsAlpha && RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.B10G11R11_UFloatPack32, FormatUsage.Linear | FormatUsage.Render))
-                    hdrFormat = GraphicsFormat.B10G11R11_UFloatPack32;
-                else if (RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.R16G16B16A16_SFloat, FormatUsage.Linear | FormatUsage.Render))
-                    hdrFormat = GraphicsFormat.R16G16B16A16_SFloat;
-                else
-                    hdrFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR); // This might actually be a LDR format on old devices.
-
-                desc.graphicsFormat = isHdrEnabled ? hdrFormat : renderTextureFormatDefault;
+                desc.graphicsFormat = MakeRenderTextureGraphicsFormat(isHdrEnabled, needsAlpha);
                 desc.depthBufferBits = 32;
                 desc.msaaSamples = msaaSamples;
                 desc.sRGB = (QualitySettings.activeColorSpace == ColorSpace.Linear);
@@ -500,9 +586,9 @@ namespace UnityEngine.Rendering.Universal
                 desc = camera.targetTexture.descriptor;
                 desc.width = camera.pixelWidth;
                 desc.height = camera.pixelHeight;
-                if (camera.cameraType == CameraType.SceneView  && !isHdrEnabled)
+                if (camera.cameraType == CameraType.SceneView && !isHdrEnabled)
                 {
-                    desc.graphicsFormat = renderTextureFormatDefault;
+                    desc.graphicsFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
                 }
                 // SystemInfo.SupportsRenderTextureFormat(camera.targetTexture.descriptor.colorFormat)
                 // will assert on R8_SINT since it isn't a valid value of RenderTextureFormat.
@@ -519,6 +605,19 @@ namespace UnityEngine.Rendering.Universal
             desc.bindMS = false;
             desc.useDynamicScale = camera.allowDynamicResolution;
 
+            // The way RenderTextures handle MSAA fallback when an unsupported sample count of 2 is requested (falling back to numSamples = 1), differs fom the way
+            // the fallback is handled when setting up the Vulkan swapchain (rounding up numSamples to 4, if supported). This caused an issue on Mali GPUs which don't support
+            // 2x MSAA.
+            // The following code makes sure that on Vulkan the MSAA unsupported fallback behaviour is consistent between RenderTextures and Swapchain.
+            // TODO: we should review how all backends handle MSAA fallbacks and move these implementation details in engine code.
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
+            {
+                // if the requested number of samples is 2, and the supported value is 1x, it means that 2x is unsupported on this GPU.
+                // Then we bump up the requested value to 4.
+                if (desc.msaaSamples == 2 && SystemInfo.GetRenderTextureSupportedMSAASampleCount(desc) == 1)
+                    desc.msaaSamples = 4;
+            }
+
             // check that the requested MSAA samples count is supported by the current platform. If it's not supported,
             // replace the requested desc.msaaSamples value with the actual value the engine falls back to
             desc.msaaSamples = SystemInfo.GetRenderTextureSupportedMSAASampleCount(desc);
@@ -532,33 +631,52 @@ namespace UnityEngine.Rendering.Universal
             return desc;
         }
 
-        static Lightmapping.RequestLightsDelegate lightsDelegate = (Light[] requests, NativeArray<LightDataGI> lightsOutput) =>
+        private static Lightmapping.RequestLightsDelegate lightsDelegate = (Light[] requests, NativeArray<LightDataGI> lightsOutput) =>
         {
-            // Editor only.
-#if UNITY_EDITOR
             LightDataGI lightData = new LightDataGI();
-
+#if UNITY_EDITOR
+            // Always extract lights in the Editor.
             for (int i = 0; i < requests.Length; i++)
             {
                 Light light = requests[i];
+                var additionalLightData = light.GetUniversalAdditionalLightData();
+
+                LightmapperUtils.Extract(light, out Cookie cookie);
+
                 switch (light.type)
                 {
                     case LightType.Directional:
                         DirectionalLight directionalLight = new DirectionalLight();
                         LightmapperUtils.Extract(light, ref directionalLight);
-                        lightData.Init(ref directionalLight);
+
+                        if (light.cookie != null)
+                        {
+                            // Size == 1 / Scale
+                            cookie.sizes = additionalLightData.lightCookieSize;
+                            // Offset, Map cookie UV offset to light position on along local axes.
+                            if (additionalLightData.lightCookieOffset != Vector2.zero)
+                            {
+                                var r = light.transform.right * additionalLightData.lightCookieOffset.x;
+                                var u = light.transform.up * additionalLightData.lightCookieOffset.y;
+                                var offset = r + u;
+
+                                directionalLight.position += offset;
+                            }
+                        }
+
+                        lightData.Init(ref directionalLight, ref cookie);
                         break;
                     case LightType.Point:
                         PointLight pointLight = new PointLight();
                         LightmapperUtils.Extract(light, ref pointLight);
-                        lightData.Init(ref pointLight);
+                        lightData.Init(ref pointLight, ref cookie);
                         break;
                     case LightType.Spot:
                         SpotLight spotLight = new SpotLight();
                         LightmapperUtils.Extract(light, ref spotLight);
                         spotLight.innerConeAngle = light.innerSpotAngle * Mathf.Deg2Rad;
                         spotLight.angularFalloff = AngularFalloffType.AnalyticAndInnerAngle;
-                        lightData.Init(ref spotLight);
+                        lightData.Init(ref spotLight, ref cookie);
                         break;
                     case LightType.Area:
                         RectangleLight rectangleLight = new RectangleLight();
@@ -581,13 +699,55 @@ namespace UnityEngine.Rendering.Universal
                 lightsOutput[i] = lightData;
             }
 #else
-            LightDataGI lightData = new LightDataGI();
-
-            for (int i = 0; i < requests.Length; i++)
+            // If Enlighten realtime GI isn't active, we don't extract lights.
+            if (SupportedRenderingFeatures.active.enlighten == false || ((int)SupportedRenderingFeatures.active.lightmapBakeTypes | (int)LightmapBakeType.Realtime) == 0)
             {
-                Light light = requests[i];
-                lightData.InitNoBake(light.GetInstanceID());
-                lightsOutput[i] = lightData;
+                for (int i = 0; i < requests.Length; i++)
+                {
+                    Light light = requests[i];
+                    lightData.InitNoBake(light.GetInstanceID());
+                    lightsOutput[i] = lightData;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < requests.Length; i++)
+                {
+                    Light light = requests[i];
+                    switch (light.type)
+                    {
+                        case LightType.Directional:
+                            DirectionalLight directionalLight = new DirectionalLight();
+                            LightmapperUtils.Extract(light, ref directionalLight);
+                            lightData.Init(ref directionalLight);
+                            break;
+                        case LightType.Point:
+                            PointLight pointLight = new PointLight();
+                            LightmapperUtils.Extract(light, ref pointLight);
+                            lightData.Init(ref pointLight);
+                            break;
+                        case LightType.Spot:
+                            SpotLight spotLight = new SpotLight();
+                            LightmapperUtils.Extract(light, ref spotLight);
+                            spotLight.innerConeAngle = light.innerSpotAngle * Mathf.Deg2Rad;
+                            spotLight.angularFalloff = AngularFalloffType.AnalyticAndInnerAngle;
+                            lightData.Init(ref spotLight);
+                            break;
+                        case LightType.Area:
+                            // Rect area light is baked only in URP.
+                            lightData.InitNoBake(light.GetInstanceID());
+                            break;
+                        case LightType.Disc:
+                            // Disc light is baked only.
+                            lightData.InitNoBake(light.GetInstanceID());
+                            break;
+                        default:
+                            lightData.InitNoBake(light.GetInstanceID());
+                            break;
+                    }
+                    lightData.falloff = FalloffType.InverseSquared;
+                    lightsOutput[i] = lightData;
+                }
             }
 #endif
         };
@@ -624,9 +784,9 @@ namespace UnityEngine.Rendering.Universal
                 float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
                 float oneOverLightRangeSqr = 1.0f / Mathf.Max(0.0001f, lightRange * lightRange);
 
-                // On mobile and Nintendo Switch: Use the faster linear smoothing factor (SHADER_HINT_NICE_QUALITY).
+                // On untethered devices: Use the faster linear smoothing factor (SHADER_HINT_NICE_QUALITY).
                 // On other devices: Use the smoothing factor that matches the GI.
-                lightAttenuation.x = Application.isMobilePlatform || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Switch ? oneOverFadeRangeSqr : oneOverLightRangeSqr;
+                lightAttenuation.x = GraphicsSettings.HasShaderDefine(Graphics.activeTier, BuiltinShaderDefine.SHADER_API_MOBILE) || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Switch ? oneOverFadeRangeSqr : oneOverLightRangeSqr;
                 lightAttenuation.y = lightRangeSqrOverFadeRangeSqr;
             }
 
@@ -725,6 +885,8 @@ namespace UnityEngine.Rendering.Universal
         // RenderObjectsPass
         //RenderObjects,
 
+        LightCookies,
+
         MainLightShadow,
         ResolveShadows,
         SSAO,
@@ -738,6 +900,8 @@ namespace UnityEngine.Rendering.Universal
         PaniniProjection,
         UberPostProcess,
         Bloom,
+        LensFlareDataDriven,
+        MotionVectors,
 
         FinalBlit
     }

@@ -1,20 +1,24 @@
-/************************************************************************************
-Copyright : Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
-
-Your use of this SDK or tool is subject to the Oculus SDK License Agreement, available at
-https://developer.oculus.com/licenses/oculussdk/
-
-Unless required by applicable law or agreed to in writing, the Utilities SDK distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-ANY KIND, either express or implied. See the License for the specific language governing
-permissions and limitations under the License.
-************************************************************************************/
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ *
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// Represents a "space" in the Oculus Runtime.
@@ -26,6 +30,20 @@ public readonly struct OVRSpace : IEquatable<OVRSpace>
 	/// or apps.
 	/// </summary>
 	public ulong Handle { get; }
+
+	/// <summary>
+	/// Retrieve the universally unique identifier (UUID) associated with this <see cref="OVRSpace"/>.
+	/// </summary>
+	/// <remarks>
+	/// Every space that can be persisted will have a UUID associated with it. UUIDs are consistent across different
+	/// sessions and apps.
+	///
+	/// The UUID of a space does not change over time, but not all spaces are guaranteed to have a UUID.
+	/// </remarks>
+	/// <param name="uuid">If successful, the uuid associated with this <see cref="OVRSpace"/>, otherwise, `Guid.Empty`.
+	/// </param>
+	/// <returns>Returns `true` if the uuid could be retrieved, otherwise `false`.</returns>
+	public bool TryGetUuid(out Guid uuid) => OVRPlugin.GetSpaceUuid(Handle, out uuid);
 
 	/// <summary>
 	/// Indicates whether this <see cref="OVRSpace"/> represents a valid space (vs a default constructed
